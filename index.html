@@ -208,6 +208,11 @@ a:visited { color: inherit; }
   <button class="sub-btn" onclick="switchAddedSub('albums')" id="sub-added-albums">Albums</button>
 </div>
 
+<div class="sub-nav" id="subNav3">
+  <button class="sub-btn active" onclick="switchPlayedSub('albums')" id="sub-played-albums">Albums</button>
+  <button class="sub-btn" onclick="switchPlayedSub('artists')" id="sub-played-artists">Artists</button>
+</div>
+
 <div class="drill-bar" id="drillBar">
   <div class="drill-top">
     <button class="back-btn" onclick="exitDrill()">‹ Genres</button>
@@ -271,7 +276,7 @@ if (!cfg.sheetId) {
 }
 
 let artists = [], albums = [], played = [];
-let tab = 'artists', sub = 'added', addedSub = 'artists', sort = 'recent', view = 'list';
+let tab = 'artists', sub = 'added', addedSub = 'artists', playedSub = 'albums', sort = 'recent', view = 'list';
 let genre = 'All', drill = null, drillSub = 'artists', q = '';
 let gIndex = {}, gModalAll = [];
 
@@ -339,6 +344,7 @@ function render() {
   document.querySelectorAll('.nav-btn').forEach((b,i)=>b.classList.toggle('active',['artists','albums','genres','recent'][i]===tab));
   document.getElementById('subNav').classList.toggle('visible', tab==='recent');
   document.getElementById('subNav2').classList.toggle('visible', tab==='recent' && sub==='added');
+  document.getElementById('subNav3').classList.toggle('visible', tab==='recent' && sub==='played');
   const isDrill = tab==='genres' && drill;
   document.getElementById('drillBar').classList.toggle('visible', isDrill);
   const isGenreList = tab==='genres' && !drill;
@@ -597,11 +603,56 @@ function renderRecent(){
     const c=document.getElementById('content');
     if(!played.length){c.innerHTML='<div class="state"><span class="icon">🎵</span>No recently played data yet</div>';return;}
 
-    // Group tracks by album, preserving most-recent-play order
+    if(playedSub==='artists'){
+      // Dedupe by artist, preserve play order
+      const artistMap={}, artistOrder=[];
+      played.forEach(r=>{
+        const key=r.artist_url||r.primary_artist_name||'';
+        if(!key) return;
+        if(!artistMap[key]){
+          artistMap[key]={
+            artist_name: r.primary_artist_name||'',
+            artist_url: r.artist_url||'#',
+            image_url: '',
+            played_at: r.played_at||'',
+            track_count: 0,
+          };
+          artistOrder.push(key);
+        }
+        artistMap[key].track_count++;
+        if((r.played_at||'')>artistMap[key].played_at) artistMap[key].played_at=r.played_at;
+      });
+      const artistRows=artistOrder.map(k=>artistMap[k]);
+      document.getElementById('countLbl').textContent=`${artistRows.length} artist${artistRows.length!==1?'s':''}`;
+      const html=artistRows.map((a,i)=>{
+        // Try to find artist image from artists array
+        const fullArtist=artists.find(ar=>(ar.artist_url||'')===(a.artist_url||''));
+        const img=fullArtist?fullArtist.artist_image_url:'';
+        const th=img
+          ?`<div class="lthumb"><img src="${img}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='🎤'"></div>`
+          :`<div class="lthumb">🎤</div>`;
+        const date=fmtDT(a.played_at);
+        const safeName=(a.artist_name||'').replace(/'/g,"\\'");
+        return `<div class="litem litem-artist" onclick="toggleArtistExpand('${safeName}')">
+          <div class="lnum">${i+1}</div>
+          ${th}
+          <div class="linfo">
+            <div class="lname">${a.artist_name}</div>
+            <div class="lsub">${a.track_count} track${a.track_count!==1?'s':''} played</div>
+          </div>
+          ${date?`<div class="ldate">${date}</div>`:''}
+        </div>`;
+      }).join('');
+      c.innerHTML=`<div class="list">${html}</div>`;
+      return;
+    }
+
+    // Albums view (default)
     const albumMap={};
     const albumOrder=[];
     played.forEach(r=>{
-      const key=(r.album_name||'unknown')+'||'+(r.primary_artist_name||'');
+      const key=(r.album_url||r.track_url||'')+(r.primary_artist_name||'');
+      if(!key) return;
       if(!albumMap[key]){
         albumMap[key]={
           album_name: r.album_name||'',
@@ -615,8 +666,7 @@ function renderRecent(){
         albumOrder.push(key);
       }
       albumMap[key].track_count++;
-      // keep most recent played_at
-      if((r.played_at||'') > albumMap[key].played_at) albumMap[key].played_at=r.played_at;
+      if((r.played_at||'')>albumMap[key].played_at) albumMap[key].played_at=r.played_at;
     });
 
     const albumRows=albumOrder.map(k=>albumMap[k]);
@@ -658,7 +708,7 @@ function renderRecent(){
 }
 
 function switchTab(t){
-  tab=t;drill=null;genre='All';q='';expandedArtist=null;addedSub='artists';
+  tab=t;drill=null;genre='All';q='';expandedArtist=null;addedSub='artists';playedSub='albums';
   document.getElementById('searchInput').value='';
   document.getElementById('srtP').style.display = t==='artists' ? 'inline-block' : 'none';
   if (sort==='popular' && t!=='artists') { sort='recent'; document.getElementById('srtR').classList.add('active'); document.getElementById('srtP').classList.remove('active'); }
@@ -669,12 +719,19 @@ function switchSub(s){
   document.getElementById('sub-added').classList.toggle('active',s==='added');
   document.getElementById('sub-played').classList.toggle('active',s==='played');
   document.getElementById('subNav2').classList.toggle('visible', s==='added');
+  document.getElementById('subNav3').classList.toggle('visible', s==='played');
   renderRecent();
 }
 function switchAddedSub(s){
   addedSub=s;
   document.getElementById('sub-added-artists').classList.toggle('active',s==='artists');
   document.getElementById('sub-added-albums').classList.toggle('active',s==='albums');
+  renderRecent();
+}
+function switchPlayedSub(s){
+  playedSub=s;
+  document.getElementById('sub-played-albums').classList.toggle('active',s==='albums');
+  document.getElementById('sub-played-artists').classList.toggle('active',s==='artists');
   renderRecent();
 }
 function setSort(s){
