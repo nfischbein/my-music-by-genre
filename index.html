@@ -203,6 +203,11 @@ a:visited { color: inherit; }
   <button class="sub-btn" onclick="switchSub('played')" id="sub-played">Recently Played</button>
 </div>
 
+<div class="sub-nav" id="subNav2">
+  <button class="sub-btn active" onclick="switchAddedSub('artists')" id="sub-added-artists">Artists</button>
+  <button class="sub-btn" onclick="switchAddedSub('albums')" id="sub-added-albums">Albums</button>
+</div>
+
 <div class="drill-bar" id="drillBar">
   <div class="drill-top">
     <button class="back-btn" onclick="exitDrill()">‹ Genres</button>
@@ -266,7 +271,7 @@ if (!cfg.sheetId) {
 }
 
 let artists = [], albums = [], played = [];
-let tab = 'artists', sub = 'added', sort = 'recent', view = 'list';
+let tab = 'artists', sub = 'added', addedSub = 'artists', sort = 'recent', view = 'list';
 let genre = 'All', drill = null, drillSub = 'artists', q = '';
 let gIndex = {}, gModalAll = [];
 
@@ -333,6 +338,7 @@ function render() {
   // nav
   document.querySelectorAll('.nav-btn').forEach((b,i)=>b.classList.toggle('active',['artists','albums','genres','recent'][i]===tab));
   document.getElementById('subNav').classList.toggle('visible', tab==='recent');
+  document.getElementById('subNav2').classList.toggle('visible', tab==='recent' && sub==='added');
   const isDrill = tab==='genres' && drill;
   document.getElementById('drillBar').classList.toggle('visible', isDrill);
   const isGenreList = tab==='genres' && !drill;
@@ -636,24 +642,41 @@ function renderRecent(){
     c.innerHTML=`<div class="list">${html}</div>`;
     return;
   }
-  let rows=[...artists.map(r=>({...r,_t:'artist'})),...albums.map(r=>({...r,_t:'album'}))].sort((a,b)=>new Date(b.added_date||0)-new Date(a.added_date||0));
-  if(q){const lq=q.toLowerCase();rows=rows.filter(r=>(r.artist_name||r.album_name||'').toLowerCase().includes(lq));}
-  const aCount=rows.filter(r=>r._t==='artist').length;
-  const alCount=rows.filter(r=>r._t==='album').length;
-  document.getElementById('countLbl').textContent=`${aCount} artists · ${alCount} albums`;
+  let rows;
+  if (addedSub==='artists') {
+    rows = [...artists.map(r=>({...r,_t:'artist'}))].sort((a,b)=>new Date(b.added_date||0)-new Date(a.added_date||0));
+    if(q){const lq=q.toLowerCase();rows=rows.filter(r=>(r.artist_name||'').toLowerCase().includes(lq));}
+    document.getElementById('countLbl').textContent=`${rows.length} artists`;
+  } else {
+    rows = [...albums.map(r=>({...r,_t:'album'}))].sort((a,b)=>new Date(b.added_date||0)-new Date(a.added_date||0));
+    if(q){const lq=q.toLowerCase();rows=rows.filter(r=>(r.album_name||'').toLowerCase().includes(lq));}
+    document.getElementById('countLbl').textContent=`${rows.length} albums`;
+  }
   const c=document.getElementById('content');
   if(!rows.length){c.innerHTML='<div class="state"><span class="icon">🔍</span>No results</div>';return;}
   c.innerHTML=view==='grid'?`<div class="grid">${rows.map(r=>cardH(r,r._t)).join('')}</div>`:`<div class="list">${rows.map((r,i)=>listH(r,r._t,i)).join('')}</div>`;
 }
 
 function switchTab(t){
-  tab=t;drill=null;genre='All';q='';expandedArtist=null;
+  tab=t;drill=null;genre='All';q='';expandedArtist=null;addedSub='artists';
   document.getElementById('searchInput').value='';
   document.getElementById('srtP').style.display = t==='artists' ? 'inline-block' : 'none';
   if (sort==='popular' && t!=='artists') { sort='recent'; document.getElementById('srtR').classList.add('active'); document.getElementById('srtP').classList.remove('active'); }
   render();
 }
-function switchSub(s){sub=s;document.getElementById('sub-added').classList.toggle('active',s==='added');document.getElementById('sub-played').classList.toggle('active',s==='played');renderRecent();}
+function switchSub(s){
+  sub=s;
+  document.getElementById('sub-added').classList.toggle('active',s==='added');
+  document.getElementById('sub-played').classList.toggle('active',s==='played');
+  document.getElementById('subNav2').classList.toggle('visible', s==='added');
+  renderRecent();
+}
+function switchAddedSub(s){
+  addedSub=s;
+  document.getElementById('sub-added-artists').classList.toggle('active',s==='artists');
+  document.getElementById('sub-added-albums').classList.toggle('active',s==='albums');
+  renderRecent();
+}
 function setSort(s){
   sort=s;
   document.getElementById('srtR').classList.toggle('active',s==='recent');
