@@ -626,7 +626,10 @@ function renderRecent(){
       document.getElementById('countLbl').textContent=`${artistRows.length} artist${artistRows.length!==1?'s':''}`;
       const html=artistRows.map((a,i)=>{
         // Try to find artist image from artists array
-        const fullArtist=artists.find(ar=>(ar.artist_url||'')===(a.artist_url||''));
+        const fullArtist=artists.find(ar=>
+          (ar.artist_url && ar.artist_url===(a.artist_url||'')) ||
+          (ar.artist_name||'').toLowerCase()===(a.artist_name||'').toLowerCase()
+        );
         const img=fullArtist?fullArtist.artist_image_url:'';
         const th=img
           ?`<div class="lthumb"><img src="${img}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='🎤'"></div>`
