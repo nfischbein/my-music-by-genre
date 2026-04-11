@@ -978,8 +978,9 @@ const ARTICLES = /^(the|a|an)\s+/i;
 const PEOPLE_EXCEPTIONS = new Set([
   // Bands that look like two-word people names — sort by first word
   'black crowes','black keys','black flag','black sabbath','black mountain',
+  'black elephant',
   'white stripes','white lies','dead kennedys','dead weather',
-  'talking heads','rolling stones','beastie boys','beastie boys',
+  'talking heads','rolling stones','beastie boys',
   'blind faith','blind melon','buffalo springfield','creedence clearwater',
   'grateful dead','grand funk','lynyrd skynyrd','molly hatchet',
   'mountain goats','neutral milk','night ranger','pearl jam',
@@ -987,23 +988,86 @@ const PEOPLE_EXCEPTIONS = new Set([
   'radiohead','rage against','red hot','smashing pumpkins',
   'soundgarden','stone temple','stone roses','velvet underground',
   'violent femmes','widespread panic','wilco','weezer',
+  // Added from user review
+  'captain beefheart',
+  'whoopie cat',
+  'detroit cobras',
+  'may company',
+  'record company',
+  'heavy crawls',
+  'red devils',
+  'flying eyes',
+  'heavy eyes',
+  'blackwater fever',
+  'lunar effect',
+  'floyd lee',
+  'riverboat gamblers',
+  'sleep eazys',
+  'grand east',
+  'bone church',
+  'drug church',
+  'blind dog',
+  'white dog',
+  'snoop dog',
+  'swamp dogg',
+  'mondo drag',
+  'arcy drive',
+  'heavy feather',
+  'stick figure',
+  'beach fly',
+  'ruby force',
+  'buffalo fuzz',
+  'pink fuzz',
+  'pink floyd',
+  'mos generator',
+  'surfer girl',
+  'soul glo',
+  'electric gold',
+  'ancient greece',
+  'meantooth grin',
+  'death grips',
+  'militarie gun',
+  'massive hassle',
+  'wo fat',
+  'mob deep',
+  'motley crue',
+  'mötley crüe',
+  'chaz bundick',
 ]);
+
+// Specific overrides for 3-word (or unusual) people names → sort by last name
+const SORT_OVERRIDES = {
+  'garrett t. willie': 'willie garrett t',
+  'garret t. willie': 'willie garret t',
+  'christone kingfish ingram': 'ingram christone kingfish',
+  "charlie patton's war": 'patton charlie',
+  'cedric burnside project': 'burnside cedric project',
+  'eddie cleanhead vinson': 'vinson eddie cleanhead',
+  'gary clark jr.': 'clark gary jr',
+  'gary clark jr': 'clark gary jr',
+  'glen crytzer': 'crytzer glen',
+  'harlis sweetwater band': 'sweetwater harlis band',
+  'doug e. fresh': 'fresh doug e',
+  'eric b. and rakim': 'rakim eric b',
+};
 
 function artistSortKey(name) {
   if (!name) return '';
+  const lower = name.toLowerCase().trim();
+  // Check specific overrides first
+  if (SORT_OVERRIDES[lower]) return SORT_OVERRIDES[lower];
   // Strip leading article
   const stripped = name.replace(ARTICLES, '').trim();
-  const lower = stripped.toLowerCase();
-  const words = lower.split(/\s+/);
+  const lstripped = stripped.toLowerCase();
+  const words = lstripped.split(/\s+/);
 
   // Two-word name: check if it's a person (not a known band)
-  if (words.length === 2 && !PEOPLE_EXCEPTIONS.has(lower)) {
-    // Treat as "Firstname Lastname" → sort by last name
+  if (words.length === 2 && !PEOPLE_EXCEPTIONS.has(lstripped)) {
     return words[1] + ' ' + words[0];
   }
 
   // Everything else: sort by first significant word
-  return lower;
+  return lstripped;
 }
 const PIN_KEY = 'mmg_pin_v1';
 // SHA-256 hash of PIN "7482" — the actual PIN is never stored in code or localStorage
