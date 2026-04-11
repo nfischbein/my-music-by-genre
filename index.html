@@ -469,10 +469,12 @@ function toggleArtistExpand(artistName, artistUrl='') {
   } else {
     expandedArtist = artistName;
   }
-  // If on albums or recent tab, switch to artists tab to show the expand
-  if (tab==='albums' || tab==='recent') {
+  // If on albums, recent, or genres-album-drill, switch to artists tab to show the expand
+  if (tab==='albums' || tab==='recent' || (tab==='genres' && drill && drillSub==='albums')) {
     tab='artists';
+    drill=null;
     document.querySelectorAll('.nav-btn').forEach((b,i)=>b.classList.toggle('active',['artists','albums','genres','recent'][i]==='artists'));
+    document.getElementById('drillBar').classList.remove('visible');
     document.getElementById('srtP').style.display='inline-block';
     renderCards(artists,'artist');
   } else if (tab==='artists') renderCards(artists,'artist');
