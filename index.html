@@ -438,24 +438,36 @@ function buildExpandInner(artist, listMode=false) {
 let expandedArtist = null; // tracks which artist is currently expanded
 
 function toggleArtistExpand(artistName, artistUrl='') {
+  const inList = artists.find(a=>(a.artist_name||'').toLowerCase()===artistName.toLowerCase());
+
+  // For unfollowed artists — show a small overlay panel instead of switching tabs
+  if (!inList) {
+    const url = artistUrl || '';
+    const existing = document.getElementById('unfollowedPanel');
+    if (existing && existing.dataset.artist === artistName) {
+      existing.remove(); return;
+    }
+    if (existing) existing.remove();
+    const panel = document.createElement('div');
+    panel.id = 'unfollowedPanel';
+    panel.dataset.artist = artistName;
+    panel.style.cssText = 'position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 80px);left:16px;right:16px;background:var(--bg3);border:0.5px solid var(--green);border-radius:12px;padding:14px 16px;z-index:200;display:flex;align-items:center;gap:12px;';
+    panel.innerHTML = `
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${artistName}</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px">Not in your followed artists</div>
+      </div>
+      ${url ? `<a href="${url}" style="display:flex;align-items:center;gap:5px;padding:7px 12px;border-radius:14px;background:var(--green);color:#000;font-size:12px;font-weight:600;text-decoration:none;flex-shrink:0">${spotifyIcon(10)} Spotify</a>` : ''}
+      <button onclick="document.getElementById('unfollowedPanel').remove()" style="background:var(--bg2);border:0.5px solid var(--border);color:var(--text2);width:28px;height:28px;border-radius:14px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">×</button>`;
+    document.body.appendChild(panel);
+    setTimeout(()=>{ if(document.getElementById('unfollowedPanel')) document.getElementById('unfollowedPanel').remove(); }, 5000);
+    return;
+  }
+
   if (expandedArtist === artistName) {
     expandedArtist = null;
   } else {
     expandedArtist = artistName;
-    // If artist isn't in followed list, create a stub so expand panel works
-    const inList = artists.find(a=>(a.artist_name||'').toLowerCase()===artistName.toLowerCase());
-    if (!inList) {
-      if (!window._playedArtistStubs) window._playedArtistStubs = {};
-      if (!window._playedArtistStubs[artistName]) {
-        window._playedArtistStubs[artistName] = {
-          artist_name: artistName,
-          artist_url: artistUrl || '',
-          artist_image_url: '',
-          final_genres: '',
-          _notFollowing: true
-        };
-      }
-    }
   }
   // If on albums tab, switch to artists tab to show the expand
   if (tab==='albums') {
@@ -473,6 +485,12 @@ function toggleArtistExpand(artistName, artistUrl='') {
       if (el) el.scrollIntoView({behavior:'smooth', block:'nearest'});
     });
   }
+}
+
+function goToGenre(g) {
+  tab='genres';
+  document.querySelectorAll('.nav-btn').forEach((b,i)=>b.classList.toggle('active',['artists','albums','genres','recent'][i]==='genres'));
+  enterDrill(g);
 }
 
 function closeExpand(e, artistName) {
@@ -508,7 +526,9 @@ function cardH(r, type) {
     const safeName = (r.artist_name||'').replace(/'/g,"\\'");
     const isOpen = expandedArtist === r.artist_name;
     const borderStyle = isOpen ? 'border-color:var(--green)' : '';
-    return `<div class="card" onclick="toggleArtistExpand('${safeName}')" style="cursor:pointer;${borderStyle}">${imgEl}<div class="card-body"><div class="card-name">${name}</div><div class="card-genres">${tags}</div>${date?`<div class="card-date">${date}</div>`:''}</div></div>`;
+    const tappableTags = (r.final_genres||'').split(',').map(g=>g.trim()).filter(Boolean).slice(0,2)
+      .map(g=>`<span class="gtag" onclick="event.stopPropagation();goToGenre('${g.replace(/'/g,"\\'")}');" style="cursor:pointer">${g}</span>`).join('');
+    return `<div class="card" onclick="toggleArtistExpand('${safeName}')" style="cursor:pointer;${borderStyle}">${imgEl}<div class="card-body"><div class="card-name">${name}</div><div class="card-genres">${tappableTags}</div>${date?`<div class="card-date">${date}</div>`:''}</div></div>`;
   }
   return `<a class="card" href="${url||'#'}">${imgEl}<div class="card-body"><div class="card-name">${name}</div>${sub2?`<div class="card-sub" onclick="event.preventDefault();event.stopPropagation();toggleArtistExpand('${sub2.replace(/'/g,"\\'")}','${(r.artist_url||'').replace(/'/g,"\\'")}');" style="cursor:pointer;color:var(--green)">${sub2}</div>`:''}<div class="card-genres">${tags}</div>${date?`<div class="card-date">${date}</div>`:''}</div></a>`;
 }
@@ -527,12 +547,14 @@ function listH(r, type, idx) {
 
   if (isA) {
     const safeName = (r.artist_name||'').replace(/'/g,"\\'");
+    const safeGenre = (sub2||'').replace(/'/g,"\\'");
     const isOpen = expandedArtist === r.artist_name;
     const expandHTML = isOpen
       ? `<div class="litem-expand">${buildExpandInner(r, true)}</div>`
       : '';
+    const genreLbl = sub2 ? `<div class="lsub" onclick="event.stopPropagation();goToGenre('${safeGenre}');" style="cursor:pointer;color:var(--green)">${sub2}</div>` : '';
     return `<div>
-      <div class="litem litem-artist" onclick="toggleArtistExpand('${safeName}')">${num}${th}<div class="linfo"><div class="lname">${name}</div>${sub2?`<div class="lsub">${sub2}</div>`:''}</div>${date?`<div class="ldate">${date}</div>`:''}</div>
+      <div class="litem litem-artist" onclick="toggleArtistExpand('${safeName}')">${num}${th}<div class="linfo"><div class="lname">${name}</div>${genreLbl}</div>${date?`<div class="ldate">${date}</div>`:''}</div>
       ${expandHTML}
     </div>`;
   }
