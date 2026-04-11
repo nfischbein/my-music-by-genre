@@ -150,17 +150,48 @@ def chunked(iterable, size):
 # Checkpoint helpers
 # -----------------------------
 
+# Checkpoints expire after this many seconds.
+# - Recently played: always fresh (no checkpoint)
+# - Saved tracks/albums/artists: refresh daily so new saves are picked up
+CHECKPOINT_TTL = {
+    "saved_tracks":     86400,   # 24 hours
+    "saved_albums":     86400,   # 24 hours
+    "followed_artists": 86400,   # 24 hours
+    "artist_details_map": 604800, # 7 days (rarely changes)
+}
+CHECKPOINT_TTL_DEFAULT = 86400   # 24 hours for anything not listed
+
 
 def save_checkpoint(path, data):
+    wrapped = {
+        "saved_at": time.time(),
+        "data": data,
+    }
     with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False)
+        json.dump(wrapped, f, ensure_ascii=False)
 
 
 def load_checkpoint(path, default=None):
-    if os.path.exists(path):
+    if not os.path.exists(path):
+        return default
+    try:
         with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return default
+            wrapped = json.load(f)
+        # Support both old format (raw list/dict) and new format (wrapped with saved_at)
+        if not isinstance(wrapped, dict) or "saved_at" not in wrapped:
+            # Old format — treat as expired so we re-fetch fresh
+            log(f"Checkpoint {path} is old format, will re-fetch.")
+            return default
+        age = time.time() - wrapped["saved_at"]
+        # Determine TTL from filename
+        name = os.path.basename(path).replace(".json", "")
+        ttl = CHECKPOINT_TTL.get(name, CHECKPOINT_TTL_DEFAULT)
+        if age > ttl:
+            log(f"Checkpoint {path} expired ({int(age/3600)}h old, TTL {int(ttl/3600)}h), will re-fetch.")
+            return default
+        return wrapped["data"]
+    except Exception:
+        return default
 
 
 # -----------------------------
@@ -940,14 +971,20 @@ def consolidate_genres(genres_str):
         return genres_str
 
     original = [g.strip() for g in genres_str.split(",") if g.strip()]
-    buckets_to_add = []
+    seen = set(g.lower() for g in original)
+    parents_to_add = []
 
     for g in original:
-        bucket = GENRE_BUCKET_LOOKUP.get(g.lower())
-        if bucket and bucket not in buckets_to_add and bucket not in original:
-            buckets_to_add.append(bucket)
+        # Check GENRE_PARENT_MAP first
+        parent = GENRE_PARENT_MAP.get(g.lower())
+        # Fall back to EXTRA_GENRE_MAP
+        if not parent:
+            parent = EXTRA_GENRE_MAP.get(g.lower())
+        if parent and parent.lower() not in seen:
+            seen.add(parent.lower())
+            parents_to_add.append(parent)
 
-    combined = original + buckets_to_add
+    combined = original + parents_to_add
     return ", ".join(combined)
 
 
