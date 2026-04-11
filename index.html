@@ -259,6 +259,8 @@ a:visited { color: inherit; }
     <p>Enter your Google Sheet ID — the string between /d/ and /edit in the sheet URL. Make sure the sheet is shared as "Anyone with the link → Viewer".</p>
     <label>Sheet ID</label>
     <input id="sheetId" type="text" placeholder="your-sheet-id" autocomplete="off" autocorrect="off" spellcheck="false">
+    <label style="margin-top:16px;display:block">History URL <span style="color:var(--text3);font-size:11px">(optional — for cross-device play history)</span></label>
+    <input id="historyUrl" type="text" placeholder="https://script.google.com/macros/s/..." autocomplete="off" autocorrect="off" spellcheck="false">
     <button class="btn-g" onclick="saveConfig()">Connect</button>
     <button class="btn-ghost" onclick="hideConfig()">Cancel</button>
   </div>
@@ -267,20 +269,23 @@ a:visited { color: inherit; }
 <script>
 const CFG_KEY = 'mmg_cfg_v3';
 const DATA_KEY = 'mmg_data_v3';
-const HISTORY_KEY = 'mmg_history_v1';
+const HISTORY_KEY = 'mmg_history_v1';  // localStorage fallback
 const TTL = 3600000;
 const MAX_HISTORY = 500;
 
-// ── App-tracked play history ──────────────────────────────────────────────
-function loadHistory() {
+// ── Play history (cross-device via Apps Script + localStorage fallback) ───
+function loadLocalHistory() {
   try { return JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]'); } catch { return []; }
 }
 
+function saveLocalHistory(history) {
+  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, MAX_HISTORY))); } catch {}
+}
+
 function trackPlay(type, item) {
-  // type: 'album' or 'artist'
-  const history = loadHistory();
+  if (type !== 'album') return; // only track album taps
   const entry = {
-    type,
+    type: 'album',
     played_at: new Date().toISOString(),
     album_name: item.album_name||'',
     primary_artist_name: item.primary_artist_name||item.artist_name||'',
@@ -288,30 +293,52 @@ function trackPlay(type, item) {
     artist_url: item.artist_url||'',
     image_url: item.album_image_url||item.image_url||item.artist_image_url||'',
   };
-  history.unshift(entry);
-  // Keep last MAX_HISTORY entries
-  if (history.length > MAX_HISTORY) history.splice(MAX_HISTORY);
-  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); } catch {}
+
+  // Write to localStorage immediately (works offline, instant)
+  const local = loadLocalHistory();
+  local.unshift(entry);
+  saveLocalHistory(local);
+
+  // Write to Apps Script in background if URL configured
+  if (cfg.historyUrl) {
+    fetch(cfg.historyUrl, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(entry),
+    }).catch(()=>{}); // silent fail — localStorage is the fallback
+  }
 }
 
+// Fetch remote history from Apps Script (async, called on load)
+async function fetchRemoteHistory() {
+  if (!cfg.historyUrl) return [];
+  try {
+    const r = await fetch(cfg.historyUrl + '?limit=300');
+    const data = await r.json();
+    if (data.status === 'ok' && Array.isArray(data.rows)) return data.rows;
+  } catch {}
+  return [];
+}
+
+let remoteHistory = []; // populated async on load
+
 function mergePlayHistory(spotifyPlayed) {
-  const appHistory = loadHistory();
-  // Convert app history album entries to same shape as spotify played
-  const appAsPlayed = appHistory.map(e => ({
-    played_at: e.played_at,
-    track_name: '',
-    track_url: e.album_url,
-    primary_artist_name: e.primary_artist_name,
-    artist_url: e.artist_url,
-    album_name: e.album_name,
-    album_url: e.album_url,
-    image_url: e.image_url,
-    _source: 'app',
-  }));
-  // Merge and sort by played_at descending
-  const merged = [...appAsPlayed, ...spotifyPlayed.map(r=>({...r,_source:'spotify'}))];
-  merged.sort((a,b)=>new Date(b.played_at||0)-new Date(a.played_at||0));
-  return merged;
+  // Merge: remote (Apps Script) + local (localStorage) + Spotify
+  const local = loadLocalHistory();
+  const all = [...remoteHistory, ...local, ...spotifyPlayed.map(r=>({...r,_src:'spotify'}))];
+  // Dedupe by album_url + date (day precision)
+  const seen = new Set();
+  const deduped = [];
+  for (const r of all) {
+    const albumKey = (r.album_url||r.track_url||r.album_name||'').split('?')[0];
+    const day = (r.played_at||'').slice(0,10);
+    const key = albumKey + '|' + day;
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(r);
+  }
+  deduped.sort((a,b)=>new Date(b.played_at||0)-new Date(a.played_at||0));
+  return deduped;
 }
 
 let cfg = JSON.parse(localStorage.getItem(CFG_KEY) || '{}');
@@ -363,6 +390,8 @@ const dedup = (rows, keyFn) => {
 async function load(force=false) {
   if (!cfg.sheetId){showConfig();return;}
   const cached = JSON.parse(localStorage.getItem(DATA_KEY)||'null');
+  // Fetch remote history in background regardless of cache
+  fetchRemoteHistory().then(rows=>{ remoteHistory=rows; });
   if (!force && cached && Date.now()-cached.ts<TTL) {
     artists=cached.artists; albums=cached.albums; played=cached.played||[];
     buildIdx(); render(); return;
@@ -904,12 +933,18 @@ function pickGenre(g){
 }
 function hideGenreModal(){document.getElementById('genreModal').style.display='none';}
 
-function showConfig(){document.getElementById('sheetId').value=cfg.sheetId||'';document.getElementById('configModal').style.display='flex';}
+function showConfig(){
+  document.getElementById('sheetId').value=cfg.sheetId||'';
+  document.getElementById('historyUrl').value=cfg.historyUrl||'';
+  document.getElementById('configModal').style.display='flex';
+}
 function hideConfig(){document.getElementById('configModal').style.display='none';}
 function saveConfig(){
   const id=document.getElementById('sheetId').value.trim();
   if(!id)return;
+  const histUrl=document.getElementById('historyUrl').value.trim();
   cfg.sheetId=id;
+  cfg.historyUrl=histUrl||'';
   localStorage.setItem(CFG_KEY,JSON.stringify(cfg));
   localStorage.removeItem(DATA_KEY);
   hideConfig();
