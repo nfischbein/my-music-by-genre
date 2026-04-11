@@ -47,6 +47,7 @@ from google.oauth2.service_account import Credentials
 SCOPES_SPOTIFY = [
     "user-library-read",
     "user-follow-read",
+    "user-read-recently-played",
 ]
 
 DEFAULT_TOKEN_CACHE = ".spotify_token_cache.json"
@@ -76,6 +77,7 @@ DEFAULT_CONFIG = {
         "by_genre_artists": "By_Genre_Artists",
         "by_genre_albums": "By_Genre_Albums",
         "artist_saved_albums": "Artist_Saved_Albums",
+        "recently_played": "Recently_Played",
         "needs_review": "Needs_Review",
         "sync_log": "Sync_Log",
         "config": "Config",
@@ -309,6 +311,62 @@ def fetch_followed_artists(sp, limit=50):
     return items
 
 
+def fetch_recently_played(sp, limit=50):
+    """Fetch recently played tracks — always fresh, no checkpoint (changes every listen)."""
+    log("Fetching recently played tracks from Spotify...")
+    items = []
+    try:
+        results = sp.current_user_recently_played(limit=limit)
+        items = results.get("items", [])
+        log(f"Fetched {len(items)} recently played tracks.")
+    except Exception as e:
+        log(f"Error fetching recently played: {e}")
+    return items
+
+
+def build_recently_played_dataframe(recently_played, artist_details_map):
+    rows = []
+    seen = set()
+    for item in recently_played:
+        played_at = item.get("played_at", "")
+        track = item.get("track") or {}
+        track_id = track.get("id")
+        if not track_id or track_id in seen:
+            continue
+        seen.add(track_id)
+        track_name = track.get("name", "")
+        track_url = safe_get(track, "external_urls", "spotify", default="")
+        album = track.get("album") or {}
+        album_name = album.get("name", "")
+        album_url = safe_get(album, "external_urls", "spotify", default="")
+        images = album.get("images", []) or []
+        image_url = images[0].get("url", "") if images else ""
+        artists = track.get("artists", []) or []
+        primary_artist = artists[0] if artists else {}
+        primary_artist_name = primary_artist.get("name", "")
+        primary_artist_id = primary_artist.get("id", "")
+        artist_obj = artist_details_map.get(primary_artist_id, {})
+        artist_url = safe_get(artist_obj, "external_urls", "spotify", default="")
+        rows.append({
+            "played_at": played_at,
+            "track_name": track_name,
+            "track_url": track_url,
+            "primary_artist_name": primary_artist_name,
+            "primary_artist_id": primary_artist_id,
+            "artist_url": artist_url,
+            "album_name": album_name,
+            "album_url": album_url,
+            "image_url": image_url,
+        })
+    return pd.DataFrame(rows)
+
+
+def write_recently_played_tab(sh, config, recently_played_df):
+    tab_name = config["tab_names"]["recently_played"]
+    ws = get_or_create_worksheet(sh, tab_name, rows=200, cols=20)
+    clear_and_set_dataframe(ws, recently_played_df)
+
+
 def fetch_artist_details(sp, artist_ids):
     ckpt_path = "checkpoints/artist_details_map.json"
     cached = load_checkpoint(ckpt_path)
@@ -347,6 +405,267 @@ def fetch_artist_details(sp, artist_ids):
 # -----------------------------
 
 
+GENRE_PARENT_MAP = {
+    # Rock
+    "indie rock": "rock", "alternative rock": "rock", "post-rock": "rock",
+    "classic rock": "rock", "hard rock": "rock", "soft rock": "rock",
+    "progressive rock": "rock", "psychedelic rock": "rock", "garage rock": "rock",
+    "art rock": "rock", "glam rock": "rock", "punk rock": "rock",
+    "folk rock": "rock", "country rock": "rock", "blues rock": "rock",
+    "math rock": "rock", "noise rock": "rock", "surf rock": "rock",
+    "britpop": "rock", "grunge": "rock", "shoegaze": "rock",
+    "post-grunge": "rock", "emo": "rock", "screamo": "rock",
+    "new wave": "rock", "post-punk": "rock", "gothic rock": "rock",
+    "industrial rock": "rock", "arena rock": "rock", "heartland rock": "rock",
+
+    # Pop
+    "indie pop": "pop", "dream pop": "pop", "synth-pop": "pop",
+    "electropop": "pop", "power pop": "pop", "art pop": "pop",
+    "baroque pop": "pop", "chamber pop": "pop", "bubblegum pop": "pop",
+    "teen pop": "pop", "dance-pop": "pop", "k-pop": "pop",
+    "j-pop": "pop", "c-pop": "pop", "hyperpop": "pop",
+
+    # Hip Hop
+    "hip hop": "hip hop", "rap": "hip hop", "trap": "hip hop",
+    "conscious hip hop": "hip hop", "east coast hip hop": "hip hop",
+    "west coast hip hop": "hip hop", "southern hip hop": "hip hop",
+    "gangsta rap": "hip hop", "alternative hip hop": "hip hop",
+    "underground hip hop": "hip hop", "boom bap": "hip hop",
+    "cloud rap": "hip hop", "mumble rap": "hip hop", "drill": "hip hop",
+    "g-funk": "hip hop", "crunk": "hip hop", "hyphy": "hip hop",
+    "lo-fi hip hop": "hip hop", "jazz rap": "hip hop",
+
+    # Electronic
+    "electronic": "electronic", "electronica": "electronic",
+    "ambient": "electronic", "idm": "electronic", "glitch": "electronic",
+    "downtempo": "electronic", "chillwave": "electronic", "vaporwave": "electronic",
+    "synthwave": "electronic", "retrowave": "electronic", "darkwave": "electronic",
+    "industrial": "electronic", "ebm": "electronic", "noise": "electronic",
+    "experimental electronic": "electronic", "trip hop": "electronic",
+    "lo-fi": "electronic", "future bass": "electronic", "bass music": "electronic",
+
+    # Dance / EDM
+    "house": "dance", "deep house": "dance", "tech house": "dance",
+    "progressive house": "dance", "electro house": "dance", "future house": "dance",
+    "tropical house": "dance", "afro house": "dance",
+    "techno": "dance", "detroit techno": "dance", "minimal techno": "dance",
+    "acid techno": "dance", "industrial techno": "dance",
+    "trance": "dance", "progressive trance": "dance", "psytrance": "dance",
+    "drum and bass": "dance", "jungle": "dance", "breakbeat": "dance",
+    "dubstep": "dance", "brostep": "dance", "garage": "dance",
+    "uk garage": "dance", "2-step": "dance", "edm": "dance",
+    "club": "dance", "dance": "dance", "disco": "dance", "nu-disco": "dance",
+    "electro": "dance", "big room": "dance", "hardstyle": "dance",
+
+    # Jazz
+    "jazz": "jazz", "bebop": "jazz", "cool jazz": "jazz",
+    "hard bop": "jazz", "free jazz": "jazz", "jazz fusion": "jazz",
+    "smooth jazz": "jazz", "acid jazz": "jazz", "nu jazz": "jazz",
+    "swing": "jazz", "big band": "jazz", "dixieland": "jazz",
+    "modal jazz": "jazz", "post-bop": "jazz", "soul jazz": "jazz",
+    "latin jazz": "jazz", "bossa nova": "jazz", "samba": "jazz",
+
+    # R&B / Soul
+    "r&b": "r&b", "rnb": "r&b", "soul": "r&b", "neo soul": "r&b",
+    "contemporary r&b": "r&b", "quiet storm": "r&b", "new jack swing": "r&b",
+    "motown": "r&b", "northern soul": "r&b", "funk": "r&b",
+    "gospel": "r&b", "blues": "r&b", "rhythm and blues": "r&b",
+    "electric blues": "r&b", "chicago blues": "r&b", "delta blues": "r&b",
+
+    # Metal
+    "metal": "metal", "heavy metal": "metal", "thrash metal": "metal",
+    "death metal": "metal", "black metal": "metal", "doom metal": "metal",
+    "power metal": "metal", "progressive metal": "metal", "nu-metal": "metal",
+    "metalcore": "metal", "deathcore": "metal", "symphonic metal": "metal",
+    "folk metal": "metal", "viking metal": "metal", "sludge metal": "metal",
+    "stoner metal": "metal", "post-metal": "metal", "djent": "metal",
+    "speed metal": "metal", "glam metal": "metal",
+
+    # Folk / Acoustic
+    "folk": "folk", "indie folk": "folk", "folk rock": "folk",
+    "americana": "folk", "singer-songwriter": "folk", "acoustic": "folk",
+    "bluegrass": "folk", "country": "folk", "outlaw country": "folk",
+    "alt-country": "folk", "country pop": "folk", "country rock": "folk",
+    "celtic": "folk", "world": "folk", "neofolk": "folk",
+
+    # Classical
+    "classical": "classical", "orchestral": "classical", "chamber music": "classical",
+    "opera": "classical", "baroque": "classical", "romantic": "classical",
+    "contemporary classical": "classical", "neoclassical": "classical",
+    "minimalism": "classical", "modern classical": "classical",
+    "soundtrack": "classical", "film score": "classical",
+
+    # Reggae
+    "reggae": "reggae", "dancehall": "reggae", "ska": "reggae",
+    "dub": "reggae", "roots reggae": "reggae", "rocksteady": "reggae",
+
+    # Latin
+    "latin": "latin", "salsa": "latin", "merengue": "latin",
+    "cumbia": "latin", "bachata": "latin", "reggaeton": "latin",
+    "latin pop": "latin", "latin rock": "latin", "flamenco": "latin",
+}
+
+
+# Tags that are not real genres and should be filtered out
+NOISE_TAGS = {
+    # Years and decades
+    "50s", "60s", "70s", "80s", "90s", "00s", "10s", "20s",
+    "1950s", "1960s", "1970s", "1980s", "1990s", "2000s", "2010s", "2020s",
+    # Nationalities / regions
+    "american", "british", "english", "irish", "scottish", "welsh",
+    "australian", "canadian", "swedish", "norwegian", "danish", "finnish",
+    "german", "french", "italian", "spanish", "japanese", "korean",
+    "african", "european", "northern", "southern", "eastern", "western",
+    "atlanta", "chicago", "london", "nashville", "new york", "detroit",
+    "berlin", "austin", "akron", "australia", "aussie",
+    # List/chart/award tags
+    "1001 albums you must hear before you die", "albums", "all",
+    "2025 albums", "2024 albums", "2023 albums", "2022 albums", "2021 albums",
+    "2020 albums", "2019 albums", "2018 albums", "2017 albums", "2016 albums",
+    "2015 albums", "2014 albums", "2013 albums", "2012 albums", "2011 albums",
+    "2010 albums", "2009 albums", "2008 albums", "2007 albums",
+    "aln-sh", "100th", "aoty", "best of 2020", "best of 2021", "best of 2022",
+    "best of 2023", "best of 2024", "2023 grammy nominations",
+    "1001 albums", "abc favorite cds", "albumsdoudoune",
+    # Descriptor tags
+    "female vocalists", "male vocalists", "all-female", "all-male",
+    "easy listening", "chillout", "chill", "relax", "background",
+    "band", "group", "duo", "trio", "quartet", "ensemble",
+    "ai", "ai generated", "axe", "christmas", "holiday",
+    "seen live", "favorites", "favourite", "fav", "best of", "greatest hits",
+    "guitar", "ballad", "alliteration", "fictional", "acquire",
+    "artisttoknow", "b artist", "awesome album", "addicting",
+    "album i own", "all in a day", "animals for stretchead",
+    "beach weekend", "4 estrellas", "5 stars", "3-5",
+    "2008 universal fire victim", "elephant 6", "lynch jelusick frontiers",
+    "4jsduskmellow", "allboutguitar", "black label society",
+    "army of the pharaohs", "beat junkies", "back street crawler",
+    "abbey sings abbey", "bb king", "argent", "akron",
+    "70th", "indie groove",
+    # Bare years
+    "2003", "2004", "2005", "2006", "2007", "2008", "2009",
+    "2010", "2011", "2012", "2013", "2014", "2015", "2016",
+    "2017", "2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025",
+    "1967", "1968", "1969", "1970", "1971", "1972", "1973", "1974",
+    "1975", "1976", "1977", "1978", "1979", "1980", "1981", "1982",
+    "1983", "1984", "1985", "1986", "1987", "1988", "1989",
+    "1990", "1991", "1992", "1993", "1994", "1995", "1996", "1997", "1998", "1999",
+}
+
+# Additional genre keyword mappings to catch what was falling through
+EXTRA_GENRE_MAP = {
+    # Rock variants
+    "indie": "rock", "psychedelic": "rock", "jam band": "rock",
+    "jam": "rock", "stoner": "rock", "prog": "rock", "brit": "rock",
+    "garage": "rock", "post rock": "rock", "math": "rock",
+    "heavy psych": "rock", "post-hardcore": "rock", "freakbeat": "rock",
+    "indie groove": "rock", "hard rock": "rock", "power pop": "rock",
+    # Electronic variants
+    "chillout": "electronic", "chill": "electronic", "lounge": "electronic",
+    "future": "electronic", "bass": "electronic", "edm": "dance",
+    # Hip hop variants
+    "hip-hop": "hip hop", "hiphop": "hip hop", "rap": "hip hop",
+    "dirty south": "hip hop", "southern rap": "hip hop",
+    # R&B variants
+    "contemporary randb": "r&b / soul", "rnb": "r&b / soul",
+    "rhythm and blues": "r&b / soul", "soul music": "r&b / soul",
+    # World
+    "central asian throat singing": "world", "throat singing": "world",
+    "afrobeat": "world", "afropop": "world", "afro": "world",
+    "celtic": "world", "indian": "world", "arabic": "world",
+    "global": "world", "international": "world", "aussie": "world",
+    # Jazz variants
+    "fusion": "jazz", "latin jazz": "jazz", "smooth": "jazz",
+    "hard bop": "jazz", "bebop": "jazz", "cool jazz": "jazz",
+    # Folk variants
+    "roots": "folk / country", "appalachian": "folk / country",
+    "old time": "folk / country", "traditional": "folk / country",
+    # Classical variants
+    "orchestral": "classical", "symphonic": "classical", "chamber": "classical",
+    "contemporary classical": "classical", "modern classical": "classical",
+    "minimalist": "classical", "score": "classical", "cinematic": "classical",
+    # Blues variants
+    "delta": "blues", "piedmont": "blues", "country blues": "blues",
+    "swamp": "blues", "boogie": "blues",
+    # Metal variants
+    "sludge": "metal", "stoner rock": "metal", "djent": "metal",
+    "deathcore": "metal", "grindcore": "metal",
+    # Reggae variants
+    "roots reggae": "reggae", "lovers rock": "reggae",
+    # Latin variants
+    "bossa": "jazz", "mpb": "latin", "tropicalia": "latin",
+}
+
+
+def clean_genres(genres_str):
+    """
+    Remove noise tags (years, nationalities, list names, random tags) from a genres string.
+    Returns cleaned comma-separated string with only real genre tags.
+    """
+    if not genres_str:
+        return genres_str
+    tags = [g.strip() for g in genres_str.split(",") if g.strip()]
+    cleaned = []
+    for tag in tags:
+        tl = tag.lower()
+        # Skip pure numbers
+        if tag.isdigit():
+            continue
+        # Skip year patterns (19xx, 20xx)
+        if re.match(r'^(19|20)\d{2}$', tag):
+            continue
+        # Skip "YYYY albums" pattern
+        if re.match(r'^(19|20)\d{2}\s+albums?$', tl):
+            continue
+        # Skip "best of YYYY" pattern
+        if re.match(r'^best of \d{4}$', tl):
+            continue
+        # Skip in noise set
+        if tl in NOISE_TAGS:
+            continue
+        # Skip very short tags
+        if len(tag) <= 2:
+            continue
+        # Skip tags that look like usernames or codes (contain digits mixed with letters oddly)
+        if re.match(r'^[a-z0-9]{1,4}[0-9]{3,}', tl) and len(tag) < 12:
+            continue
+        cleaned.append(tag)
+    return ", ".join(cleaned)
+
+
+def consolidate_genres(genres_str):
+    """
+    Takes a comma-separated genres string, cleans noise tags, then returns
+    an expanded version with both specific genres AND their parent categories.
+    Also applies EXTRA_GENRE_MAP to catch variants not in GENRE_PARENT_MAP.
+    e.g. "indie rock, deep house" → "indie rock, rock, deep house, dance"
+    """
+    if not genres_str:
+        return genres_str
+
+    # First clean noise tags
+    genres_str = clean_genres(genres_str)
+    if not genres_str:
+        return genres_str
+
+    original = [g.strip() for g in genres_str.split(",") if g.strip()]
+    seen = set(g.lower() for g in original)
+    parents_to_add = []
+
+    for g in original:
+        # Check GENRE_PARENT_MAP first
+        parent = GENRE_PARENT_MAP.get(g.lower())
+        # Fall back to EXTRA_GENRE_MAP
+        if not parent:
+            parent = EXTRA_GENRE_MAP.get(g.lower())
+        if parent and parent.lower() not in seen:
+            seen.add(parent.lower())
+            parents_to_add.append(parent)
+
+    combined = original + parents_to_add
+    return ", ".join(combined)
+
+
 def simple_normalize_genre(name):
     if not name:
         return None
@@ -357,19 +676,46 @@ def simple_normalize_genre(name):
     return g or None
 
 
-def web_lookup_genre(artist_name):
-    """
-    Look up artist genres via the MusicBrainz API.
-    - Searches for the artist by name, takes the best match
-    - Fetches their tags (MusicBrainz's term for genres)
-    - Filters to tags with vote count >= 1 and returns top 5
-    - Respects MusicBrainz rate limit: 1 request/second
-    - No API key required
-    """
+def lastfm_lookup_genre(artist_name, api_key):
+    """Look up artist tags via Last.fm API."""
+    if not api_key:
+        return [], 0.0, "lastfm_no_key"
+    try:
+        url = "https://ws.audioscrobbler.com/2.0/"
+        params = {
+            "method": "artist.getinfo",
+            "artist": artist_name,
+            "api_key": api_key,
+            "format": "json",
+            "autocorrect": 1,
+        }
+        resp = requests.get(url, params=params, timeout=15)
+        if resp.status_code != 200:
+            return [], 0.0, f"lastfm_error_{resp.status_code}"
+        data = resp.json()
+        if "error" in data:
+            return [], 0.0, f"lastfm_api_error_{data.get('error')}"
+        tags = data.get("artist", {}).get("tags", {}).get("tag", [])
+        if not tags:
+            return [], 0.0, "lastfm_no_tags"
+        # Last.fm returns tags sorted by weight already
+        top_tags = [t["name"] for t in tags[:7] if t.get("name")]
+        normalized = [simple_normalize_genre(g) for g in top_tags]
+        normalized = [g for g in normalized if g]
+        # Filter noise tags
+        normalized = [g for g in normalized if g.lower() not in NOISE_TAGS and not g.isdigit() and len(g) > 2]
+        if not normalized:
+            return [], 0.0, "lastfm_empty_after_normalize"
+        confidence = 0.85
+        return normalized, confidence, "lastfm"
+    except Exception as e:
+        return [], 0.0, f"lastfm_exception_{str(e)[:40]}"
+
+
+def musicbrainz_lookup_genre(artist_name):
+    """Look up artist tags via MusicBrainz API."""
     try:
         headers = {"User-Agent": "SpotifyToSheetsSync/1.0 (personal-use)"}
-
-        # Step 1: Search for the artist
         search_url = "https://musicbrainz.org/ws/2/artist/"
         search_params = {
             "query": f'artist:"{artist_name}"',
@@ -380,50 +726,246 @@ def web_lookup_genre(artist_name):
         resp = requests.get(search_url, params=search_params, headers=headers, timeout=15)
         if resp.status_code != 200:
             return [], 0.0, f"mb_search_error_{resp.status_code}"
-
         data = resp.json()
         artists = data.get("artists", [])
         if not artists:
             return [], 0.0, "mb_no_results"
-
-        # Pick best match: highest score
         best = max(artists, key=lambda a: int(a.get("score", 0)))
         artist_id = best.get("id")
         if not artist_id:
             return [], 0.0, "mb_no_id"
-
-        # Step 2: Fetch artist detail with tags
         detail_url = f"https://musicbrainz.org/ws/2/artist/{artist_id}"
         detail_params = {"inc": "tags", "fmt": "json"}
         time.sleep(1.1)
         resp2 = requests.get(detail_url, params=detail_params, headers=headers, timeout=15)
         if resp2.status_code != 200:
             return [], 0.0, f"mb_detail_error_{resp2.status_code}"
-
         detail = resp2.json()
         tags = detail.get("tags", [])
         if not tags:
             return [], 0.0, "mb_no_tags"
-
-        # Filter tags with count >= 1, sort by count descending, take top 5
         valid_tags = [t for t in tags if t.get("count", 0) >= 1]
         valid_tags.sort(key=lambda t: t.get("count", 0), reverse=True)
-        top_tags = [t["name"] for t in valid_tags[:5] if t.get("name")]
-
+        top_tags = [t["name"] for t in valid_tags[:7] if t.get("name")]
         normalized = [simple_normalize_genre(g) for g in top_tags]
         normalized = [g for g in normalized if g]
-
+        # Filter noise tags
+        normalized = [g for g in normalized if g.lower() not in NOISE_TAGS and not g.isdigit() and len(g) > 2]
         if not normalized:
             return [], 0.0, "mb_empty_after_normalize"
-
         confidence = 0.85 if valid_tags[0].get("count", 0) >= 3 else 0.7
         return normalized, confidence, "musicbrainz"
-
     except Exception as e:
-        return [], 0.0, f"exception_{str(e)[:40]}"
+        return [], 0.0, f"mb_exception_{str(e)[:40]}"
+
+
+def web_lookup_genre(artist_name):
+    """
+    Query both MusicBrainz and Last.fm, then merge and select the best result.
+    - If both return tags, merge them (deduplicated), prefer the longer list
+    - If only one returns tags, use that one
+    - If neither returns tags, return empty
+    """
+    lastfm_api_key = os.getenv("LASTFM_API_KEY", "")
+
+    mb_genres, mb_conf, mb_source = musicbrainz_lookup_genre(artist_name)
+    lfm_genres, lfm_conf, lfm_source = lastfm_lookup_genre(artist_name, lastfm_api_key)
+
+    # Both have results — merge, deduplicate, keep up to 7
+    if mb_genres and lfm_genres:
+        seen = set()
+        merged = []
+        # Interleave: take from each source alternately to balance coverage
+        for g in lfm_genres + mb_genres:
+            g_lower = g.lower()
+            if g_lower not in seen:
+                seen.add(g_lower)
+                merged.append(g)
+        merged = merged[:7]
+        confidence = max(mb_conf, lfm_conf)
+        return merged, confidence, "musicbrainz+lastfm"
+
+    # Only Last.fm has results
+    if lfm_genres:
+        return lfm_genres, lfm_conf, lfm_source
+
+    # Only MusicBrainz has results
+    if mb_genres:
+        return mb_genres, mb_conf, mb_source
+
+    # Neither has results
+    return [], 0.0, "no_results"
+
+
+def lastfm_lookup_album_genre(artist_name, album_name, api_key):
+    """Look up album-specific tags via Last.fm API."""
+    if not api_key:
+        return [], 0.0, "lastfm_no_key"
+    try:
+        url = "https://ws.audioscrobbler.com/2.0/"
+        params = {
+            "method": "album.getinfo",
+            "artist": artist_name,
+            "album": album_name,
+            "api_key": api_key,
+            "format": "json",
+            "autocorrect": 1,
+        }
+        resp = requests.get(url, params=params, timeout=15)
+        if resp.status_code != 200:
+            return [], 0.0, f"lastfm_album_error_{resp.status_code}"
+        data = resp.json()
+        if "error" in data:
+            return [], 0.0, f"lastfm_album_api_error_{data.get('error')}"
+        tags = data.get("album", {}).get("tags", {}).get("tag", [])
+        if not tags:
+            return [], 0.0, "lastfm_album_no_tags"
+        top_tags = [t["name"] for t in tags[:7] if t.get("name")]
+        normalized = [simple_normalize_genre(g) for g in top_tags]
+        normalized = [g for g in normalized if g]
+        if not normalized:
+            return [], 0.0, "lastfm_album_empty_after_normalize"
+        return normalized, 0.85, "lastfm_album"
+    except Exception as e:
+        return [], 0.0, f"lastfm_album_exception_{str(e)[:40]}"
 
 
 def enrich_missing_genres(artists_df, genre_cache_path, enable_enrichment, confidence_threshold):
+    cache = read_json_file(genre_cache_path, {})
+    cache_changed = False
+
+    spotify_genre_col = "spotify_genres"
+    web_genre_col = "web_genres"
+    final_genre_col = "final_genres"
+    genre_source_col = "genre_source"
+    genre_conf_col = "genre_confidence"
+    genre_notes_col = "genre_notes"
+
+    ensure_columns(
+        artists_df,
+        [spotify_genre_col, web_genre_col, final_genre_col, genre_source_col, genre_conf_col, genre_notes_col],
+    )
+
+    for idx, row in artists_df.iterrows():
+        artist_id = row.get("artist_id")
+        artist_name = row.get("artist_name") or ""
+        spotify_genres = row.get(spotify_genre_col) or ""
+
+        if spotify_genres:
+            artists_df.at[idx, final_genre_col] = spotify_genres
+            artists_df.at[idx, genre_source_col] = "spotify"
+            artists_df.at[idx, genre_conf_col] = 1.0
+            artists_df.at[idx, genre_notes_col] = "from spotify artist genres"
+            continue
+
+        if not enable_enrichment:
+            artists_df.at[idx, final_genre_col] = ""
+            artists_df.at[idx, genre_source_col] = "none"
+            artists_df.at[idx, genre_conf_col] = 0.0
+            artists_df.at[idx, genre_notes_col] = "no spotify genres; enrichment disabled"
+            continue
+
+        cache_key = artist_id or artist_name
+        if cache_key in cache:
+            cached = cache[cache_key]
+            web_genres = cached.get("web_genres", [])
+            conf = cached.get("confidence", 0.0)
+            source = cached.get("source", "cache")
+            notes = cached.get("notes", "")
+        else:
+            web_genres, conf, source = web_lookup_genre(artist_name)
+            notes = f"web source={source}"
+            cache[cache_key] = {
+                "web_genres": web_genres,
+                "confidence": conf,
+                "source": source,
+                "notes": notes,
+            }
+            write_json_file(genre_cache_path, cache)
+            cache_changed = True
+            log(f"MusicBrainz [{len(cache)}/{len(artists_df)}] {artist_name}: {web_genres[:2] if web_genres else 'no results'}")
+
+        artists_df.at[idx, web_genre_col] = ", ".join(web_genres) if web_genres else ""
+        if web_genres and conf >= confidence_threshold:
+            artists_df.at[idx, final_genre_col] = ", ".join(web_genres)
+            artists_df.at[idx, genre_source_col] = "web"
+            artists_df.at[idx, genre_conf_col] = conf
+            artists_df.at[idx, genre_notes_col] = notes
+        else:
+            artists_df.at[idx, final_genre_col] = ""
+            artists_df.at[idx, genre_source_col] = "uncertain"
+            artists_df.at[idx, genre_conf_col] = conf
+            artists_df.at[idx, genre_notes_col] = f"{notes}; low confidence or empty"
+
+    if cache_changed:
+        write_json_file(genre_cache_path, cache)
+
+    return artists_df
+
+
+def enrich_album_genres(albums_df, artist_genre_map, genre_cache_path, confidence_threshold):
+    """
+    Enrich album genres using Last.fm album-specific tags.
+    - First uses artist-propagated genres as a base
+    - Then queries Last.fm for album-specific tags
+    - Merges both, preferring album-specific tags
+    - Caches results to avoid re-fetching
+    """
+    lastfm_api_key = os.getenv("LASTFM_API_KEY", "")
+    if not lastfm_api_key:
+        log("No LASTFM_API_KEY found, skipping album genre enrichment.")
+        return albums_df
+
+    # Use a separate cache file for album genres
+    album_cache_path = genre_cache_path.replace(".json", "_albums.json")
+    cache = read_json_file(album_cache_path, {})
+
+    total = len(albums_df)
+    enriched = 0
+
+    for idx, row in albums_df.iterrows():
+        album_id = row.get("album_id", "")
+        album_name = row.get("album_name", "") or ""
+        artist_name = row.get("primary_artist_name", "") or ""
+        artist_genres = artist_genre_map.get(row.get("primary_artist_id", ""), "")
+
+        cache_key = f"{artist_name}||{album_name}"
+
+        if cache_key in cache:
+            cached = cache[cache_key]
+            album_genres = cached.get("genres", [])
+            source = cached.get("source", "cache")
+        else:
+            album_genres, conf, source = lastfm_lookup_album_genre(
+                artist_name, album_name, lastfm_api_key
+            )
+            cache[cache_key] = {"genres": album_genres, "source": source}
+            write_json_file(album_cache_path, cache)
+            enriched += 1
+            log(f"Album genres [{enriched}/{total}] {artist_name} - {album_name}: {album_genres[:2] if album_genres else 'no results'}")
+
+        # Merge album-specific tags with artist tags
+        if album_genres:
+            # Combine: album tags first (more specific), then artist tags as supplement
+            seen = set()
+            merged = []
+            for g in album_genres + (artist_genres.split(", ") if artist_genres else []):
+                g_clean = g.strip().lower()
+                if g_clean and g_clean not in seen:
+                    seen.add(g_clean)
+                    merged.append(g.strip())
+            merged = merged[:7]
+            albums_df.at[idx, "final_genres"] = ", ".join(merged)
+            albums_df.at[idx, "genre_source"] = "lastfm_album"
+            albums_df.at[idx, "genre_confidence"] = 0.85
+        elif artist_genres:
+            # Fall back to artist genres
+            albums_df.at[idx, "final_genres"] = artist_genres
+            albums_df.at[idx, "genre_source"] = "artist_propagated"
+            albums_df.at[idx, "genre_confidence"] = 0.7
+
+    log(f"Album genre enrichment complete. {enriched} new lookups, {total - enriched} from cache.")
+    return albums_df
     cache = read_json_file(genre_cache_path, {})
     cache_changed = False
 
@@ -1256,6 +1798,7 @@ def rebuild_browse_tabs(sh, config, tracks_raw_df, albums_raw_df, artists_raw_df
                         "track_url": r.get("track_url"),
                         "primary_artist_name": r.get("primary_artist_name"),
                         "album_name": r.get("album_name"),
+                        "added_date": r.get("added_date", ""),
                     }
                 )
         bg = pd.DataFrame(bg_rows)
@@ -1271,9 +1814,37 @@ def rebuild_browse_tabs(sh, config, tracks_raw_df, albums_raw_df, artists_raw_df
 
     # By_Genre_Artists
     if not artists_raw_df.empty:
+        # Build a map of artist_id -> most recent album added_date
+        most_recent_album_date = {}
+        if not albums_raw_df.empty:
+            for _, alb in albums_raw_df.iterrows():
+                aid = alb.get("primary_artist_id", "")
+                date = alb.get("added_date", "")
+                if aid and date:
+                    if aid not in most_recent_album_date or date > most_recent_album_date[aid]:
+                        most_recent_album_date[aid] = date
+
+        # Also build by artist name as fallback
+        most_recent_album_date_by_name = {}
+        if not albums_raw_df.empty:
+            for _, alb in albums_raw_df.iterrows():
+                aname = alb.get("primary_artist_name", "")
+                date = alb.get("added_date", "")
+                if aname and date:
+                    if aname not in most_recent_album_date_by_name or date > most_recent_album_date_by_name[aname]:
+                        most_recent_album_date_by_name[aname] = date
+
         bga_rows = []
         for _, r in artists_raw_df.iterrows():
             genres = (r.get("final_genres") or "").split(",")
+            artist_id = r.get("artist_id", "")
+            artist_name = r.get("artist_name", "")
+            # Use most recent album date as proxy, fall back to first_seen_ts
+            proxy_date = (
+                most_recent_album_date.get(artist_id)
+                or most_recent_album_date_by_name.get(artist_name)
+                or r.get("first_seen_ts", "")
+            )
             for g in genres:
                 g = g.strip()
                 if not g:
@@ -1281,11 +1852,12 @@ def rebuild_browse_tabs(sh, config, tracks_raw_df, albums_raw_df, artists_raw_df
                 bga_rows.append(
                     {
                         "genre": g,
-                        "artist_name": r.get("artist_name"),
+                        "artist_name": artist_name,
                         "artist_url": r.get("artist_url"),
                         "artist_image_url": r.get("artist_image_url", ""),
                         "followers": r.get("followers"),
                         "popularity": r.get("popularity"),
+                        "added_date": proxy_date,
                     }
                 )
         bga = pd.DataFrame(bga_rows)
@@ -1294,7 +1866,7 @@ def rebuild_browse_tabs(sh, config, tracks_raw_df, albums_raw_df, artists_raw_df
                 lambda r: f'=HYPERLINK("{r.get("artist_url","")}","{r.get("artist_name","")}")' if r.get("artist_url") else r.get("artist_name", ""),
                 axis=1,
             )
-            bga = bga[["genre", "artist_link", "artist_name", "artist_image_url", "artist_url", "followers", "popularity"]]
+            bga = bga[["genre", "artist_link", "artist_name", "artist_image_url", "artist_url", "followers", "popularity", "added_date"]]
             bga = bga.sort_values(["genre", "artist_name"])
     else:
         bga = pd.DataFrame()
@@ -1539,6 +2111,7 @@ def main():
     saved_tracks = fetch_saved_tracks(sp)
     saved_albums = fetch_saved_albums(sp)
     followed_artists = fetch_followed_artists(sp)
+    recently_played = fetch_recently_played(sp)
 
     # Build artist details map from followed artists + other artists seen in tracks/albums
     artist_ids = set()
@@ -1613,6 +2186,9 @@ def main():
             new_artists_df = enrich_missing_genres(
                 new_artists_df, genre_cache_file, True, genre_conf_thresh
             )
+        # Third pass: consolidate micro-genres to parent categories
+        log("Consolidating artist genres to parent categories...")
+        new_artists_df["final_genres"] = new_artists_df["final_genres"].apply(consolidate_genres)
 
     # Propagate artist final_genres to albums/tracks
     if not new_artists_df.empty:
@@ -1628,6 +2204,15 @@ def main():
         new_albums_df["genre_source"] = new_albums_df["final_genres"].apply(
             lambda x: "artist_propagated" if x else "none"
         )
+        # Enrich with album-specific Last.fm tags
+        album_missing = (new_albums_df["final_genres"] == "").sum()
+        log(f"Enriching album genres via Last.fm ({len(new_albums_df)} albums, {album_missing} with no artist genres)...")
+        new_albums_df = enrich_album_genres(
+            new_albums_df, art_genre_map, genre_cache_file, genre_conf_thresh
+        )
+        # Consolidate micro-genres to parent categories
+        log("Consolidating album genres to parent categories...")
+        new_albums_df["final_genres"] = new_albums_df["final_genres"].apply(consolidate_genres)
 
     if not new_tracks_df.empty:
         # keep existing spotify_genres if present; else propagate
@@ -1720,6 +2305,11 @@ def main():
     # Rebuild derived tabs
     rebuild_browse_tabs(sh, config, tracks_merged, albums_merged, artists_merged)
     rebuild_needs_review_tab(sh, config, tracks_merged, albums_merged, artists_merged)
+
+    # Write recently played tab
+    recently_played_df = build_recently_played_dataframe(recently_played, artist_details_map)
+    write_recently_played_tab(sh, config, recently_played_df)
+    log(f"Written {len(recently_played_df)} recently played tracks.")
 
     # Local state (optional)
     state = {

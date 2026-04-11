@@ -8,679 +8,474 @@
 <meta name="apple-mobile-web-app-title" content="My Music">
 <title>My Music by Genre</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+:root {
+  --bg: #0a0a0a; --bg2: #141414; --bg3: #1e1e1e;
+  --border: rgba(255,255,255,0.08);
+  --text: #f0f0f0; --text2: #999; --text3: #555;
+  --green: #1db954; --radius: 12px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+a { color: inherit; text-decoration: none; }
+a:visited { color: inherit; }
 
-  :root {
-    --bg: #0a0a0a;
-    --bg2: #141414;
-    --bg3: #1e1e1e;
-    --border: rgba(255,255,255,0.08);
-    --text: #f0f0f0;
-    --text2: #999;
-    --text3: #666;
-    --green: #1db954;
-    --green2: #1aa34a;
-    --radius: 12px;
-    --safe-bottom: env(safe-area-inset-bottom, 0px);
-  }
+.header {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(10,10,10,0.95);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-bottom: 0.5px solid var(--border);
+  padding: 12px 16px 0;
+}
+.header-top { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; overflow: visible; }
+.header-top h1 { flex: 1; font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+.header-top h1 span { color: var(--green); }
+.gear-btn { width: 34px; height: 34px; border-radius: 17px; background: var(--bg3); border: 0.5px solid rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text2); flex-shrink: 0; touch-action: manipulation; -webkit-appearance: none; }
 
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
+.search-wrap { position: relative; margin-bottom: 10px; }
+.search-wrap svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: var(--text3); pointer-events: none; }
+.search-input { width: 100%; background: var(--bg3); border: 0.5px solid var(--border); border-radius: 10px; color: var(--text); font-size: 15px; padding: 8px 12px 8px 34px; outline: none; -webkit-appearance: none; }
+.search-input::placeholder { color: var(--text3); }
+.search-input:focus { border-color: var(--green); }
 
-  /* Header */
-  .header {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: rgba(10,10,10,0.92);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    padding: 16px 16px 12px;
-    border-bottom: 0.5px solid var(--border);
-  }
+.top-nav { display: flex; }
+.nav-btn { flex: 1; padding: 10px 4px; background: transparent; border: none; color: var(--text2); font-size: 13px; font-weight: 500; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; touch-action: manipulation; }
+.nav-btn.active { color: var(--green); border-bottom-color: var(--green); }
 
-  .header h1 {
-    font-size: 22px;
-    font-weight: 700;
-    letter-spacing: -0.5px;
-    color: var(--text);
-    margin-bottom: 12px;
-  }
+.sub-nav { display: none; background: var(--bg2); border-bottom: 0.5px solid var(--border); padding: 0 16px; }
+.sub-nav.visible { display: flex; }
+.sub-btn { flex: 1; padding: 9px 4px; background: transparent; border: none; color: var(--text2); font-size: 13px; cursor: pointer; border-bottom: 2px solid transparent; touch-action: manipulation; }
+.sub-btn.active { color: var(--green); border-bottom-color: var(--green); }
 
-  .header h1 span { color: var(--green); }
+.drill-bar { display: none; background: var(--bg2); border-bottom: 0.5px solid var(--border); }
+.drill-bar.visible { display: block; }
+.drill-top { display: flex; align-items: center; padding: 10px 16px; gap: 10px; }
+.back-btn { background: transparent; border: none; color: var(--green); font-size: 15px; cursor: pointer; display: flex; align-items: center; gap: 3px; touch-action: manipulation; }
+.drill-title { font-size: 15px; font-weight: 600; text-transform: capitalize; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.drill-tabs { display: flex; padding: 0 16px; }
+.drill-tab { flex: 1; padding: 8px; background: transparent; border: none; color: var(--text2); font-size: 13px; cursor: pointer; border-bottom: 2px solid transparent; touch-action: manipulation; }
+.drill-tab.active { color: var(--green); border-bottom-color: var(--green); }
 
-  /* Search */
-  .search-wrap { position: relative; margin-bottom: 10px; }
-  .search-wrap svg {
-    position: absolute; left: 12px; top: 50%;
-    transform: translateY(-50%);
-    width: 16px; height: 16px;
-    color: var(--text3);
-  }
-  .search-input {
-    width: 100%;
-    background: var(--bg3);
-    border: 0.5px solid var(--border);
-    border-radius: 10px;
-    color: var(--text);
-    font-size: 15px;
-    padding: 9px 12px 9px 36px;
-    outline: none;
-    -webkit-appearance: none;
-  }
-  .search-input::placeholder { color: var(--text3); }
-  .search-input:focus { border-color: var(--green); }
+.toolbar { display: flex; align-items: center; padding: 8px 16px; gap: 6px; border-bottom: 0.5px solid var(--border); }
+.count-lbl { font-size: 12px; color: var(--text3); flex: 1; }
+.filter-btn { display: none; align-items: center; gap: 4px; padding: 5px 10px; border-radius: 16px; border: 0.5px solid var(--border); background: var(--bg2); color: var(--text2); font-size: 12px; cursor: pointer; max-width: 140px; touch-action: manipulation; }
+.filter-btn.show { display: flex; }
+.filter-btn.active { border-color: var(--green); color: var(--green); }
+.filter-btn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sort-btn { padding: 5px 9px; border-radius: 16px; border: 0.5px solid var(--border); background: transparent; color: var(--text2); font-size: 12px; cursor: pointer; white-space: nowrap; touch-action: manipulation; }
+.sort-btn.active { border-color: var(--green); color: var(--green); }
+.view-toggle { display: flex; gap: 3px; }
+.view-btn { width: 28px; height: 28px; border-radius: 6px; border: 0.5px solid var(--border); background: transparent; color: var(--text3); cursor: pointer; display: flex; align-items: center; justify-content: center; touch-action: manipulation; }
+.view-btn.active { border-color: var(--green); color: var(--green); }
+.view-btn svg { width: 13px; height: 13px; }
 
-  /* Tabs */
-  .tabs {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 2px;
-  }
-  .tab {
-    flex: 1;
-    padding: 8px 4px;
-    border-radius: 8px;
-    border: 0.5px solid var(--border);
-    background: transparent;
-    color: var(--text2);
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    text-align: center;
-    transition: all 0.15s;
-  }
-  .tab.active {
-    background: var(--green);
-    border-color: var(--green);
-    color: #000;
-    font-weight: 600;
-  }
+.content { padding: 12px 16px; padding-bottom: calc(32px + var(--safe-bottom)); }
 
-  /* Genre filter */
-  .genre-wrap {
-    padding: 10px 16px 0;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    display: flex;
-    gap: 8px;
-    white-space: nowrap;
-  }
-  .genre-wrap::-webkit-scrollbar { display: none; }
+.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius); overflow: hidden; cursor: pointer; text-decoration: none; display: block; }
+.card:active { border-color: var(--green); }
+.card-img { width: 100%; aspect-ratio: 1; object-fit: cover; background: var(--bg3); display: block; }
+.card-ph { width: 100%; aspect-ratio: 1; background: var(--bg3); display: flex; align-items: center; justify-content: center; font-size: 32px; }
+.card-body { padding: 9px; }
+.card-name { font-size: 13px; font-weight: 600; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 3px; }
+.card-sub { font-size: 11px; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 4px; }
+.card-genres { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 3px; }
+.gtag { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(29,185,84,0.12); color: var(--green); font-weight: 500; }
+.card-date { font-size: 10px; color: var(--text3); }
 
-  .genre-pill {
-    display: inline-flex;
-    align-items: center;
-    padding: 6px 14px;
-    border-radius: 20px;
-    border: 0.5px solid var(--border);
-    background: var(--bg2);
-    color: var(--text2);
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: all 0.15s;
-    flex-shrink: 0;
-  }
-  .genre-pill.active {
-    background: var(--green);
-    border-color: var(--green);
-    color: #000;
-    font-weight: 600;
-  }
+.list { display: flex; flex-direction: column; }
+.litem { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 0.5px solid var(--border); text-decoration: none; }
+.litem:last-child { border-bottom: none; }
+.lthumb { width: 48px; height: 48px; border-radius: 6px; background: var(--bg3); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 20px; overflow: hidden; }
+.lthumb img { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; display: block; }
+.linfo { flex: 1; min-width: 0; }
+.lname { font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lsub { font-size: 12px; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; }
+.ldate { font-size: 11px; color: var(--text3); flex-shrink: 0; text-align: right; max-width: 70px; line-height: 1.3; }
+.lnum { font-size: 12px; color: var(--text3); width: 24px; text-align: right; flex-shrink: 0; margin-right: 4px; }
+.artist-header { font-size: 13px; font-weight: 600; color: var(--text2); padding: 14px 0 6px; border-bottom: 0.5px solid var(--border); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+.artist-header:first-child { padding-top: 4px; }
 
-  /* Sort bar */
-  .sort-bar {
-    padding: 10px 16px 0;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .sort-bar span {
-    font-size: 12px;
-    color: var(--text3);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  .sort-btn {
-    padding: 4px 10px;
-    border-radius: 6px;
-    border: 0.5px solid var(--border);
-    background: transparent;
-    color: var(--text2);
-    font-size: 12px;
-    cursor: pointer;
-  }
-  .sort-btn.active {
-    border-color: var(--green);
-    color: var(--green);
-  }
+.genre-list { display: flex; flex-direction: column; }
+.grow { display: flex; align-items: center; padding: 13px 0; border-bottom: 0.5px solid var(--border); cursor: pointer; touch-action: manipulation; }
+.grow:last-child { border-bottom: none; }
+.grow:active .gname { color: var(--green); }
+.gname { flex: 1; font-size: 15px; font-weight: 500; text-transform: capitalize; }
+.gcounts { font-size: 12px; color: var(--text3); margin-right: 10px; }
+.garrow { font-size: 16px; color: var(--text3); }
 
-  /* Count */
-  .count-bar {
-    padding: 8px 16px 0;
-    font-size: 12px;
-    color: var(--text3);
-  }
+.modal-ov { position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 300; display: flex; align-items: flex-end; }
+.modal { background: var(--bg2); border-radius: 20px 20px 0 0; border: 0.5px solid var(--border); width: 100%; max-height: 78vh; display: flex; flex-direction: column; padding-bottom: var(--safe-bottom); }
+.mhead { display: flex; align-items: center; padding: 16px 20px 12px; border-bottom: 0.5px solid var(--border); flex-shrink: 0; }
+.mhead h3 { flex: 1; font-size: 16px; font-weight: 600; }
+.mclose { background: transparent; border: none; color: var(--text2); font-size: 24px; cursor: pointer; line-height: 1; padding: 0 4px; }
+.msearch { padding: 10px 16px; flex-shrink: 0; }
+.msearch input { width: 100%; background: var(--bg3); border: 0.5px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px; padding: 8px 12px; outline: none; -webkit-appearance: none; }
+.mlist { overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 0 16px; flex: 1; }
+.mgenre { display: flex; align-items: center; padding: 12px 0; border-bottom: 0.5px solid var(--border); cursor: pointer; touch-action: manipulation; }
+.mgenre:last-child { border-bottom: none; }
+.mgenre:active { opacity: 0.7; }
+.mgname { flex: 1; font-size: 15px; text-transform: capitalize; }
+.mgcount { font-size: 12px; color: var(--text3); }
+.mgenre.sel .mgname { color: var(--green); font-weight: 600; }
+.mgenre.sel .mgcount { color: var(--green); }
 
-  /* Grid */
-  .grid {
-    padding: 12px 16px;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-    padding-bottom: calc(80px + var(--safe-bottom));
-  }
+.cfg { background: var(--bg2); border-radius: 20px 20px 0 0; border: 0.5px solid var(--border); padding: 24px 20px calc(24px + var(--safe-bottom)); width: 100%; }
+.cfg h2 { font-size: 18px; margin-bottom: 8px; }
+.cfg p { font-size: 13px; color: var(--text2); margin-bottom: 20px; line-height: 1.6; }
+.cfg label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 6px; }
+.cfg input { width: 100%; background: var(--bg3); border: 0.5px solid var(--border); border-radius: 8px; color: var(--text); font-size: 13px; padding: 10px 12px; outline: none; font-family: monospace; -webkit-appearance: none; }
+.cfg input:focus { border-color: var(--green); }
+.btn-g { width: 100%; margin-top: 16px; padding: 14px; border-radius: 12px; border: none; background: var(--green); color: #000; font-size: 16px; font-weight: 600; cursor: pointer; touch-action: manipulation; -webkit-appearance: none; }
+.btn-ghost { width: 100%; margin-top: 10px; padding: 12px; border-radius: 12px; border: 0.5px solid var(--border); background: transparent; color: var(--text2); font-size: 15px; cursor: pointer; touch-action: manipulation; }
 
-  /* Card */
-  .card {
-    background: var(--bg2);
-    border: 0.5px solid var(--border);
-    border-radius: var(--radius);
-    overflow: hidden;
-    cursor: pointer;
-    transition: transform 0.15s, border-color 0.15s;
-    text-decoration: none;
-    display: block;
-  }
-  .card:active { transform: scale(0.97); border-color: var(--green); }
-
-  .card-img {
-    width: 100%;
-    aspect-ratio: 1;
-    object-fit: cover;
-    background: var(--bg3);
-    display: block;
-  }
-
-  .card-img-placeholder {
-    width: 100%;
-    aspect-ratio: 1;
-    background: var(--bg3);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 36px;
-  }
-
-  .card-body {
-    padding: 10px;
-  }
-
-  .card-name {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text);
-    line-height: 1.3;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    margin-bottom: 4px;
-  }
-
-  .card-sub {
-    font-size: 11px;
-    color: var(--text2);
-    display: -webkit-box;
-    -webkit-line-clamp: 1;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    margin-bottom: 6px;
-  }
-
-  .card-genres {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-  }
-
-  .genre-tag {
-    font-size: 10px;
-    padding: 2px 7px;
-    border-radius: 4px;
-    background: rgba(29,185,84,0.12);
-    color: var(--green);
-    font-weight: 500;
-  }
-
-  .card-date {
-    font-size: 10px;
-    color: var(--text3);
-    margin-top: 5px;
-  }
-
-  /* Loading / empty */
-  .state-msg {
-    text-align: center;
-    padding: 60px 20px;
-    color: var(--text2);
-    font-size: 15px;
-    grid-column: 1 / -1;
-  }
-  .state-msg .icon { font-size: 40px; margin-bottom: 12px; display: block; }
-  .state-msg a { color: var(--green); text-decoration: none; }
-
-  /* Config modal */
-  .modal-overlay {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.85);
-    z-index: 200;
-    display: flex;
-    align-items: flex-end;
-    padding-bottom: var(--safe-bottom);
-  }
-  .modal {
-    background: var(--bg2);
-    border-radius: 20px 20px 0 0;
-    border: 0.5px solid var(--border);
-    padding: 24px 20px;
-    width: 100%;
-    max-height: 85vh;
-    overflow-y: auto;
-  }
-  .modal h2 { font-size: 18px; margin-bottom: 6px; }
-  .modal p { font-size: 13px; color: var(--text2); margin-bottom: 20px; line-height: 1.5; }
-  .modal label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 6px; margin-top: 16px; }
-  .modal input {
-    width: 100%;
-    background: var(--bg3);
-    border: 0.5px solid var(--border);
-    border-radius: 8px;
-    color: var(--text);
-    font-size: 14px;
-    padding: 10px 12px;
-    outline: none;
-    font-family: monospace;
-  }
-  .modal input:focus { border-color: var(--green); }
-  .modal-btn {
-    width: 100%;
-    margin-top: 20px;
-    padding: 14px;
-    border-radius: 12px;
-    border: none;
-    background: var(--green);
-    color: #000;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-  }
-  .modal-cancel {
-    width: 100%;
-    margin-top: 10px;
-    padding: 12px;
-    border-radius: 12px;
-    border: 0.5px solid var(--border);
-    background: transparent;
-    color: var(--text2);
-    font-size: 15px;
-    cursor: pointer;
-  }
-
-  /* Settings btn */
-  .settings-btn {
-    position: fixed;
-    bottom: calc(16px + var(--safe-bottom));
-    right: 16px;
-    width: 44px; height: 44px;
-    border-radius: 22px;
-    background: var(--bg3);
-    border: 0.5px solid var(--border);
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer;
-    z-index: 50;
-    color: var(--text2);
-  }
-
-  /* Spinner */
-  .spinner {
-    width: 32px; height: 32px;
-    border: 3px solid var(--border);
-    border-top-color: var(--green);
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-    margin: 0 auto 12px;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
+.state { text-align: center; padding: 60px 20px; color: var(--text2); font-size: 15px; }
+.state .icon { font-size: 36px; margin-bottom: 12px; display: block; }
+.spin { width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: sp 0.7s linear infinite; margin: 0 auto 12px; }
+@keyframes sp { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
 
 <div class="header">
-  <h1>My Music <span>by Genre</span></h1>
+  <div class="header-top">
+    <h1>My Music <span>by Genre</span></h1>
+    <button class="gear-btn" onclick="showConfig()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+  </div>
   <div class="search-wrap">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-    </svg>
-    <input class="search-input" id="searchInput" type="search" placeholder="Search artists or albums..." autocomplete="off">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input class="search-input" id="searchInput" type="search" placeholder="Search..." autocomplete="off">
   </div>
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab('artists')">Artists</button>
-    <button class="tab" onclick="switchTab('albums')">Albums</button>
-    <button class="tab" onclick="switchTab('recent')">Recent</button>
+  <div class="top-nav">
+    <button class="nav-btn active" onclick="switchTab('artists')">Artists</button>
+    <button class="nav-btn" onclick="switchTab('albums')">Albums</button>
+    <button class="nav-btn" onclick="switchTab('genres')">Genres</button>
+    <button class="nav-btn" onclick="switchTab('recent')">Recent</button>
   </div>
-  <div class="tabs" id="recentSubTabs" style="display:none; margin-top:6px;">
-    <button class="tab active" onclick="switchRecentSub('all')" id="rsub-all">All</button>
-    <button class="tab" onclick="switchRecentSub('artists')" id="rsub-artists">Artists</button>
-    <button class="tab" onclick="switchRecentSub('albums')" id="rsub-albums">Albums</button>
-  </div></div>
-
-<div class="genre-wrap" id="genreBar"></div>
-
-<div class="sort-bar">
-  <span>Sort</span>
-  <button class="sort-btn active" onclick="setSort('recent')" id="sort-recent">Newest first</button>
-  <button class="sort-btn" onclick="setSort('name')" id="sort-name">A–Z</button>
 </div>
 
-<div class="count-bar" id="countBar"></div>
+<div class="sub-nav" id="subNav">
+  <button class="sub-btn active" onclick="switchSub('added')" id="sub-added">Recently Added</button>
+  <button class="sub-btn" onclick="switchSub('played')" id="sub-played">Recently Played</button>
+</div>
 
-<div class="grid" id="grid"></div>
+<div class="drill-bar" id="drillBar">
+  <div class="drill-top">
+    <button class="back-btn" onclick="exitDrill()">‹ Genres</button>
+    <div class="drill-title" id="drillTitle"></div>
+  </div>
+  <div class="drill-tabs">
+    <button class="drill-tab active" onclick="switchDrillSub('artists')" id="ds-artists">Artists</button>
+    <button class="drill-tab" onclick="switchDrillSub('albums')" id="ds-albums">Albums</button>
+  </div>
+</div>
 
-<button class="settings-btn" onclick="showConfig()" title="Settings">
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-    <circle cx="12" cy="12" r="3"/>
-    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-  </svg>
-</button>
+<div class="toolbar" id="toolbar">
+  <span class="count-lbl" id="countLbl"></span>
+  <button class="filter-btn" id="filterBtn" onclick="showGenreModal()">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+    <span id="filterLbl">All genres</span>
+  </button>
+  <button class="sort-btn active" id="srtR" onclick="setSort('recent')">Newest</button>
+  <button class="sort-btn" id="srtN" onclick="setSort('name')">A–Z</button>
+  <button class="sort-btn" id="srtP" onclick="setSort('popular')" style="display:none">Popular</button>
+  <div class="view-toggle">
+    <button class="view-btn active" id="vGrid" onclick="setView('grid')">
+      <svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>
+    </button>
+    <button class="view-btn" id="vList" onclick="setView('list')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+    </button>
+  </div>
+</div>
 
-<div class="modal-overlay" id="configModal" style="display:none">
-  <div class="modal">
+<div class="content" id="content"></div>
+
+<div class="modal-ov" id="genreModal" style="display:none" onclick="hideGenreModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="mhead"><h3>Filter by genre</h3><button class="mclose" onclick="hideGenreModal()">×</button></div>
+    <div class="msearch"><input id="genreSearch" type="search" placeholder="Search genres..." oninput="filterGenreModal(this.value)"></div>
+    <div class="mlist" id="genreList"></div>
+  </div>
+</div>
+
+<div class="modal-ov" id="configModal" style="display:none" onclick="hideConfig()">
+  <div class="cfg" onclick="event.stopPropagation()">
     <h2>Connect your sheet</h2>
-    <p>Enter the ID of your Google Sheet. This is the long string in the URL between /d/ and /edit.<br><br>
-    Your sheet must be shared publicly (View access) so this app can read it.<br><br>
-    In Google Sheets: Share → Anyone with the link → Viewer.</p>
-    <label>Google Sheet ID</label>
-    <input id="sheetIdInput" type="text" placeholder="1BQVKH85sVqk-jezdbyvz6wkzc87uz6OAdl4N5FiXAxI" autocomplete="off" autocorrect="off" spellcheck="false">
-    <button class="modal-btn" onclick="saveConfig()">Connect sheet</button>
-    <button class="modal-cancel" onclick="hideConfig()">Cancel</button>
+    <p>Enter your Google Sheet ID — the string between /d/ and /edit in the sheet URL. Make sure the sheet is shared as "Anyone with the link → Viewer".</p>
+    <label>Sheet ID</label>
+    <input id="sheetId" type="text" placeholder="your-sheet-id" autocomplete="off" autocorrect="off" spellcheck="false">
+    <button class="btn-g" onclick="saveConfig()">Connect</button>
+    <button class="btn-ghost" onclick="hideConfig()">Cancel</button>
   </div>
 </div>
 
 <script>
-const CACHE_KEY = 'mmbg_config';
-const DATA_CACHE_KEY = 'mmbg_data';
-const DATA_CACHE_TTL = 3600000; // 1 hour
+const CFG_KEY = 'mmg_cfg_v3';
+const DATA_KEY = 'mmg_data_v3';
+const TTL = 3600000;
 
-let config = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
-let allArtists = [], allAlbums = [];
-let currentTab = 'artists';
-let currentGenre = 'All';
-let currentSort = 'recent';
-let searchQuery = '';
-let recentSub = 'all';
-
-function getSheetCSVUrl(tabName) {
-  const id = config.sheetId;
-  if (!id) return null;
-  return `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabName)}`;
+let cfg = JSON.parse(localStorage.getItem(CFG_KEY) || '{}');
+if (!cfg.sheetId) {
+  cfg.sheetId = '1BQVKH85sVqk-jezdbyvz6wkzc87uz6OAdl4N5FiXAxI';
+  localStorage.setItem(CFG_KEY, JSON.stringify(cfg));
 }
 
-function parseCSV(text) {
+let artists = [], albums = [], played = [];
+let tab = 'artists', sub = 'added', sort = 'recent', view = 'grid';
+let genre = 'All', drill = null, drillSub = 'artists', q = '';
+let gIndex = {}, gModalAll = [];
+
+const csv = text => {
   const lines = text.trim().split('\n');
   if (lines.length < 2) return [];
-  const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').trim());
+  const hdr = lines[0].split(',').map(h => h.replace(/^"|"$/g,'').trim());
   return lines.slice(1).map(line => {
-    const vals = [];
-    let cur = '', inQ = false;
-    for (let i = 0; i < line.length; i++) {
-      const c = line[i];
-      if (c === '"') { inQ = !inQ; continue; }
-      if (c === ',' && !inQ) { vals.push(cur); cur = ''; continue; }
-      cur += c;
+    const vals=[]; let cur='', inQ=false;
+    for (const c of line) {
+      if (c==='"'){inQ=!inQ;continue;}
+      if (c===','&&!inQ){vals.push(cur);cur='';continue;}
+      cur+=c;
     }
     vals.push(cur);
-    const obj = {};
-    headers.forEach((h, i) => obj[h] = (vals[i] || '').trim());
-    return obj;
+    const o={};
+    hdr.forEach((h,i)=>o[h]=(vals[i]||'').trim());
+    return o;
   });
-}
+};
 
-async function fetchTab(tabName) {
-  const url = getSheetCSVUrl(tabName);
-  if (!url) return [];
+const fetchSheet = async name => {
   try {
-    const r = await fetch(url);
-    const text = await r.text();
-    return parseCSV(text);
-  } catch(e) {
-    console.error('Fetch error', tabName, e);
-    return [];
+    const r = await fetch(`https://docs.google.com/spreadsheets/d/${cfg.sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(name)}`);
+    return csv(await r.text());
+  } catch(e) { return []; }
+};
+
+const dedup = (rows, keyFn) => {
+  const m={};
+  rows.forEach(r=>{
+    const k=keyFn(r); if(!k) return;
+    if(!m[k]) m[k]={...r,_g:new Set()};
+    const g=(r.genre||'').trim(); if(g) m[k]._g.add(g);
+  });
+  return Object.values(m).map(r=>{r.final_genres=Array.from(r._g).join(', ');delete r._g;return r;});
+};
+
+async function load(force=false) {
+  if (!cfg.sheetId){showConfig();return;}
+  const cached = JSON.parse(localStorage.getItem(DATA_KEY)||'null');
+  if (!force && cached && Date.now()-cached.ts<TTL) {
+    artists=cached.artists; albums=cached.albums; played=cached.played||[];
+    buildIdx(); render(); return;
   }
-}
-
-async function loadData(force = false) {
-  if (!config.sheetId) { showConfig(); return; }
-
-  const cached = JSON.parse(localStorage.getItem(DATA_CACHE_KEY) || 'null');
-  if (!force && cached && (Date.now() - cached.ts < DATA_CACHE_TTL)) {
-    allArtists = cached.artists;
-    allAlbums = cached.albums;
-    render();
-    return;
-  }
-
-  showLoading();
-  const [artists, albums] = await Promise.all([
-    fetchTab('By_Genre_Artists'),
-    fetchTab('By_Genre_Albums')
-  ]);
-  allArtists = artists;
-  allAlbums = albums;
-  localStorage.setItem(DATA_CACHE_KEY, JSON.stringify({ ts: Date.now(), artists, albums }));
+  document.getElementById('content').innerHTML='<div class="state"><div class="spin"></div>Loading your music...</div>';
+  const [a,al,p] = await Promise.all([fetchSheet('By_Genre_Artists'),fetchSheet('By_Genre_Albums'),fetchSheet('Recently_Played')]);
+  artists = dedup(a, r=>r.artist_name||r.artist_url);
+  albums = dedup(al, r=>(r.album_name||'')+'||'+(r.primary_artist_name||''));
+  played = p;
+  buildIdx();
+  localStorage.setItem(DATA_KEY, JSON.stringify({ts:Date.now(),artists,albums,played}));
   render();
 }
 
-function showLoading() {
-  document.getElementById('grid').innerHTML = `<div class="state-msg"><div class="spinner"></div>Loading your music...</div>`;
-  document.getElementById('genreBar').innerHTML = '';
-  document.getElementById('countBar').textContent = '';
-}
-
-function getActiveData() {
-  if (currentTab === 'artists') return allArtists;
-  if (currentTab === 'albums') return allAlbums;
-  // recent tab
-  if (recentSub === 'artists') return allArtists.map(a => ({...a, _type:'artist'}));
-  if (recentSub === 'albums') return allAlbums.map(a => ({...a, _type:'album'}));
-  return [...allArtists.map(a => ({...a, _type:'artist'})), ...allAlbums.map(a => ({...a, _type:'album'}))];
-}
-
-function getAllGenres() {
-  const data = currentTab === 'recent'
-    ? [...allArtists, ...allAlbums]
-    : getActiveData();
-  const genres = new Set();
-  data.forEach(row => {
-    (row.genre || row.final_genres || '').split(',').forEach(g => {
-      const t = g.trim();
-      if (t) genres.add(t);
-    });
-  });
-  return ['All', ...Array.from(genres).sort()];
-}
-
-function filterAndSort(data) {
-  let rows = data;
-
-  if (currentGenre !== 'All') {
-    rows = rows.filter(r => {
-      const g = (r.genre || r.final_genres || '').toLowerCase();
-      return g.split(',').map(x => x.trim()).includes(currentGenre.toLowerCase());
-    });
-  }
-
-  if (searchQuery) {
-    const q = searchQuery.toLowerCase();
-    rows = rows.filter(r => {
-      const name = (r.artist_name || r.album_name || r.primary_artist_name || '').toLowerCase();
-      const genre = (r.genre || r.final_genres || '').toLowerCase();
-      return name.includes(q) || genre.includes(q);
-    });
-  }
-
-  rows = [...rows].sort((a, b) => {
-    if (currentSort === 'recent') {
-      const da = new Date(a.added_date || 0);
-      const db = new Date(b.added_date || 0);
-      return db - da;
-    }
-    const na = (a.artist_name || a.album_name || '').toLowerCase();
-    const nb = (b.artist_name || b.album_name || '').toLowerCase();
-    return na.localeCompare(nb);
-  });
-
-  return rows;
-}
-
-function formatDate(str) {
-  if (!str) return '';
-  try {
-    return new Date(str).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-  } catch { return ''; }
-}
-
-function cardHTML(row, type) {
-  const isArtist = type === 'artist' || !!row.artist_name && !row.album_name;
-  const name = isArtist ? (row.artist_name || '') : (row.album_name || '');
-  const sub = isArtist ? '' : (row.primary_artist_name || '');
-  const img = isArtist ? row.artist_image_url : row.album_image_url;
-  const url = isArtist ? row.artist_url : row.album_url;
-  const genres = (row.genre || row.final_genres || '').split(',').map(g => g.trim()).filter(Boolean).slice(0, 2);
-  const date = formatDate(row.added_date);
-
-  const imgEl = img
-    ? `<img class="card-img" src="${img}" alt="${name}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
-    + `<div class="card-img-placeholder" style="display:none">${isArtist ? '🎤' : '💿'}</div>`
-    : `<div class="card-img-placeholder">${isArtist ? '🎤' : '💿'}</div>`;
-
-  const genreTags = genres.map(g => `<span class="genre-tag">${g}</span>`).join('');
-  const subEl = sub ? `<div class="card-sub">${sub}</div>` : '';
-  const dateEl = date ? `<div class="card-date">Added ${date}</div>` : '';
-
-  return `<a class="card" href="${url || '#'}" target="_blank" rel="noopener">
-    ${imgEl}
-    <div class="card-body">
-      <div class="card-name">${name}</div>
-      ${subEl}
-      <div class="card-genres">${genreTags}</div>
-      ${dateEl}
-    </div>
-  </a>`;
+function buildIdx() {
+  gIndex={};
+  const add=(r,t)=>(r.final_genres||'').split(',').forEach(g=>{g=g.trim();if(!g)return;if(!gIndex[g])gIndex[g]={artists:0,albums:0};gIndex[g][t]++;});
+  artists.forEach(r=>add(r,'artists'));
+  albums.forEach(r=>add(r,'albums'));
 }
 
 function render() {
-  renderGenreBar();
-  renderGrid();
+  // nav
+  document.querySelectorAll('.nav-btn').forEach((b,i)=>b.classList.toggle('active',['artists','albums','genres','recent'][i]===tab));
+  document.getElementById('subNav').classList.toggle('visible', tab==='recent');
+  const isDrill = tab==='genres' && drill;
+  document.getElementById('drillBar').classList.toggle('visible', isDrill);
+  const isGenreList = tab==='genres' && !drill;
+  document.getElementById('toolbar').style.display = isGenreList ? 'none' : 'flex';
+  const fb = document.getElementById('filterBtn');
+  fb.classList.toggle('show', tab==='artists'||tab==='albums'||isDrill);
+  fb.classList.toggle('active', genre!=='All'||isDrill);
+  document.getElementById('filterLbl').textContent = isDrill ? drill : (genre==='All'?'All genres':genre);
+
+  if (isGenreList) { renderGenreList(); return; }
+  if (isDrill) { renderDrill(); return; }
+  if (tab==='recent') { renderRecent(); return; }
+  renderCards(tab==='artists'?artists:albums, tab==='artists'?'artist':'album');
 }
 
-function renderGenreBar() {
-  const genres = getAllGenres();
-  const bar = document.getElementById('genreBar');
-  bar.innerHTML = genres.map(g =>
-    `<button class="genre-pill${g === currentGenre ? ' active' : ''}" onclick="selectGenre('${g.replace(/'/g, "\\'")}')">${g}</button>`
-  ).join('');
+const fmtD = s => { try{return s?new Date(s).toLocaleDateString('en-US',{month:'short',year:'numeric'}):''}catch{return '';} };
+const fmtDT = s => { try{return s?new Date(s).toLocaleDateString('en-US',{month:'short',day:'numeric'}):''}catch{return '';} };
+
+function filtered(data, typeStr) {
+  let rows = data;
+  if (genre!=='All') rows=rows.filter(r=>(r.final_genres||'').split(',').map(g=>g.trim().toLowerCase()).includes(genre.toLowerCase()));
+  if (q) { const lq=q.toLowerCase(); rows=rows.filter(r=>(r.artist_name||r.album_name||r.track_name||'').toLowerCase().includes(lq)||(r.final_genres||'').toLowerCase().includes(lq)); }
+  return [...rows].sort((a,b)=>{
+    if (sort==='name') return (a.artist_name||a.album_name||'').localeCompare(b.artist_name||b.album_name||'');
+    if (sort==='popular') return (parseInt(b.popularity)||0)-(parseInt(a.popularity)||0);
+    return new Date(b.added_date||0)-new Date(a.added_date||0);
+  });
 }
 
-function renderGrid() {
-  const data = getActiveData();
-  const filtered = filterAndSort(data);
-  const grid = document.getElementById('grid');
-  const count = document.getElementById('countBar');
+function cardH(r, type) {
+  const isA=type==='artist';
+  const name=isA?(r.artist_name||''):(r.album_name||r.track_name||'');
+  const sub2=isA?'':(r.primary_artist_name||'');
+  const img=isA?r.artist_image_url:(r.album_image_url||r.image_url);
+  const url=isA?r.artist_url:(r.album_url||r.track_url||'#');
+  const tags=(r.final_genres||'').split(',').map(g=>g.trim()).filter(Boolean).slice(0,2).map(g=>`<span class="gtag">${g}</span>`).join('');
+  const date=type==='played'?fmtDT(r.played_at):fmtD(r.added_date);
+  const em=isA?'🎤':'💿';
+  const imgEl=img?`<img class="card-img" src="${img}" alt="" loading="lazy" onerror="this.style.display='none';this.nextSibling.style.display='flex'"><div class="card-ph" style="display:none">${em}</div>`:`<div class="card-ph">${em}</div>`;
+  return `<a class="card" href="${url||'#'}" target="_blank" rel="noopener">${imgEl}<div class="card-body"><div class="card-name">${name}</div>${sub2?`<div class="card-sub">${sub2}</div>`:''}<div class="card-genres">${tags}</div>${date?`<div class="card-date">${date}</div>`:''}</div></a>`;
+}
 
-  const label = currentTab === 'artists' ? 'artists'
-    : currentTab === 'albums' ? 'albums'
-    : recentSub === 'artists' ? 'artists'
-    : recentSub === 'albums' ? 'albums'
-    : 'items';
-  count.textContent = `${filtered.length} ${label}${currentGenre !== 'All' ? ` in "${currentGenre}"` : ''}`;
+function listH(r, type, idx) {
+  const isA=type==='artist';
+  const name=isA?(r.artist_name||''):(r.album_name||r.track_name||'');
+  const sub2=isA?(r.final_genres||'').split(',')[0]?.trim()||'':(r.primary_artist_name||'');
+  const img=isA?r.artist_image_url:(r.album_image_url||r.image_url);
+  const url=isA?r.artist_url:(r.album_url||r.track_url||'#');
+  const date=type==='played'?fmtDT(r.played_at):fmtD(r.added_date);
+  const em=isA?'🎤':'💿';
+  const th=img?`<div class="lthumb"><img src="${img}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='${em}'"></div>`:`<div class="lthumb">${em}</div>`;
+  const num=idx!=null?`<div class="lnum">${idx+1}</div>`:'';
+  return `<a class="litem" href="${url||'#'}" target="_blank" rel="noopener">${num}${th}<div class="linfo"><div class="lname">${name}</div>${sub2?`<div class="lsub">${sub2}</div>`:''}</div>${date?`<div class="ldate">${date}</div>`:''}</a>`;
+}
 
-  if (filtered.length === 0) {
-    grid.innerHTML = `<div class="state-msg"><span class="icon">🔍</span>No results found</div>`;
+function renderCards(data, type) {
+  const rows = filtered(data, type);
+  document.getElementById('countLbl').textContent = `${rows.length} ${type}s`;
+  const c = document.getElementById('content');
+  if (!rows.length){c.innerHTML='<div class="state"><span class="icon">🔍</span>No results</div>';return;}
+
+  // Albums in list view + A-Z: group by artist
+  if (type==='album' && view==='list' && sort==='name') {
+    const groups = {};
+    const order = [];
+    rows.forEach(r => {
+      const artist = r.primary_artist_name || 'Unknown Artist';
+      if (!groups[artist]) { groups[artist] = []; order.push(artist); }
+      groups[artist].push(r);
+    });
+    let html = '<div class="list">';
+    order.forEach(artist => {
+      html += `<div class="artist-header">${artist}</div>`;
+      groups[artist].forEach((r, i) => { html += listH(r, 'album', i); });
+    });
+    html += '</div>';
+    c.innerHTML = html;
     return;
   }
 
-  const isRecent = currentTab === 'recent';
-  grid.innerHTML = filtered.map(row => {
-    const type = isRecent ? (row._type || (row.artist_name && !row.album_name ? 'artist' : 'album')) : currentTab.slice(0, -1);
-    return cardHTML(row, type);
-  }).join('');
+  c.innerHTML = view==='grid' ? `<div class="grid">${rows.map(r=>cardH(r,type)).join('')}</div>` : `<div class="list">${rows.map((r,i)=>listH(r,type,i)).join('')}</div>`;
 }
 
-function switchTab(tab) {
-  currentTab = tab;
-  currentGenre = 'All';
-  recentSub = 'all';
-  document.querySelectorAll('.tab').forEach((el, i) => {
-    el.classList.toggle('active', ['artists','albums','recent'][i] === tab);
-  });
-  const subTabs = document.getElementById('recentSubTabs');
-  subTabs.style.display = tab === 'recent' ? 'flex' : 'none';
-  ['all','artists','albums'].forEach(s => {
-    document.getElementById('rsub-' + s).classList.toggle('active', s === 'all');
-  });
+function renderGenreList() {
+  const MIN=3;
+  const genres = Object.entries(gIndex).filter(([,c])=>(c.artists+c.albums)>=MIN).sort((a,b)=>(b[1].artists+b[1].albums)-(a[1].artists+a[1].albums));
+  document.getElementById('countLbl').textContent='';
+  const c = document.getElementById('content');
+  if (!genres.length){c.innerHTML='<div class="state"><span class="icon">🎵</span>No genres yet — run the sync script</div>';return;}
+  c.innerHTML=`<div class="genre-list">${genres.map(([g,ct])=>`<div class="grow" onclick="enterDrill('${g.replace(/'/g,"\\'")}')"><div class="gname">${g}</div><div class="gcounts">${ct.artists?ct.artists+' artists':''}${ct.artists&&ct.albums?' · ':''}${ct.albums?ct.albums+' albums':''}</div><div class="garrow">›</div></div>`).join('')}</div>`;
+}
+
+function enterDrill(g) {
+  drill=g; drillSub='artists';
+  document.getElementById('drillTitle').textContent=g;
+  document.getElementById('ds-artists').classList.add('active');
+  document.getElementById('ds-albums').classList.remove('active');
   render();
 }
+function exitDrill(){drill=null;genre='All';render();}
+function switchDrillSub(s){
+  drillSub=s;
+  document.getElementById('ds-artists').classList.toggle('active',s==='artists');
+  document.getElementById('ds-albums').classList.toggle('active',s==='albums');
+  renderDrill();
+}
+function renderDrill(){
+  const data=drillSub==='artists'?artists:albums;
+  const type=drillSub==='artists'?'artist':'album';
+  let rows=data.filter(r=>(r.final_genres||'').split(',').map(g=>g.trim().toLowerCase()).includes(drill.toLowerCase()));
+  if(q){const lq=q.toLowerCase();rows=rows.filter(r=>(r.artist_name||r.album_name||'').toLowerCase().includes(lq));}
+  rows=[...rows].sort((a,b)=>sort==='name'?(a.artist_name||a.album_name||'').localeCompare(b.artist_name||b.album_name||''):new Date(b.added_date||0)-new Date(a.added_date||0));
+  document.getElementById('countLbl').textContent=`${rows.length} ${type}s`;
+  const c=document.getElementById('content');
+  if(!rows.length){c.innerHTML='<div class="state"><span class="icon">🔍</span>No results</div>';return;}
+  c.innerHTML=view==='grid'?`<div class="grid">${rows.map(r=>cardH(r,type)).join('')}</div>`:`<div class="list">${rows.map((r,i)=>listH(r,type,i)).join('')}</div>`;
+}
 
-function switchRecentSub(sub) {
-  recentSub = sub;
-  currentGenre = 'All';
-  ['all','artists','albums'].forEach(s => {
-    document.getElementById('rsub-' + s).classList.toggle('active', s === sub);
-  });
+function renderRecent(){
+  if(sub==='played'){
+    document.getElementById('countLbl').textContent=`${played.length} tracks`;
+    const c=document.getElementById('content');
+    if(!played.length){c.innerHTML='<div class="state"><span class="icon">🎵</span>No recently played data yet</div>';return;}
+    c.innerHTML=view==='grid'?`<div class="grid">${played.map(r=>cardH(r,'played')).join('')}</div>`:`<div class="list">${played.map((r,i)=>listH(r,'played',i)).join('')}</div>`;
+    return;
+  }
+  let rows=[...artists.map(r=>({...r,_t:'artist'})),...albums.map(r=>({...r,_t:'album'}))].sort((a,b)=>new Date(b.added_date||0)-new Date(a.added_date||0));
+  if(q){const lq=q.toLowerCase();rows=rows.filter(r=>(r.artist_name||r.album_name||'').toLowerCase().includes(lq));}
+  document.getElementById('countLbl').textContent=`${rows.length} items`;
+  const c=document.getElementById('content');
+  if(!rows.length){c.innerHTML='<div class="state"><span class="icon">🔍</span>No results</div>';return;}
+  c.innerHTML=view==='grid'?`<div class="grid">${rows.map(r=>cardH(r,r._t)).join('')}</div>`:`<div class="list">${rows.map((r,i)=>listH(r,r._t,i)).join('')}</div>`;
+}
+
+function switchTab(t){
+  tab=t;drill=null;genre='All';q='';
+  document.getElementById('searchInput').value='';
+  document.getElementById('srtP').style.display = t==='artists' ? 'inline-block' : 'none';
+  if (sort==='popular' && t!=='artists') { sort='recent'; document.getElementById('srtR').classList.add('active'); document.getElementById('srtP').classList.remove('active'); }
   render();
 }
-
-function selectGenre(g) {
-  currentGenre = g;
-  renderGenreBar();
-  renderGrid();
+function switchSub(s){sub=s;document.getElementById('sub-added').classList.toggle('active',s==='added');document.getElementById('sub-played').classList.toggle('active',s==='played');renderRecent();}
+function setSort(s){
+  sort=s;
+  document.getElementById('srtR').classList.toggle('active',s==='recent');
+  document.getElementById('srtN').classList.toggle('active',s==='name');
+  document.getElementById('srtP').classList.toggle('active',s==='popular');
+  render();
 }
+function setView(v){view=v;document.getElementById('vGrid').classList.toggle('active',v==='grid');document.getElementById('vList').classList.toggle('active',v==='list');render();}
+document.getElementById('searchInput').addEventListener('input',e=>{q=e.target.value;render();});
 
-function setSort(s) {
-  currentSort = s;
-  document.getElementById('sort-recent').classList.toggle('active', s === 'recent');
-  document.getElementById('sort-name').classList.toggle('active', s === 'name');
-  renderGrid();
+function showGenreModal(){
+  const MIN=3;
+  gModalAll=[{name:'All',count:artists.length+albums.length},...Object.entries(gIndex).filter(([,c])=>(c.artists+c.albums)>=MIN).sort((a,b)=>(b[1].artists+b[1].albums)-(a[1].artists+a[1].albums)).map(([g,c])=>({name:g,count:c.artists+c.albums}))];
+  document.getElementById('genreSearch').value='';
+  renderGenreModal(gModalAll);
+  document.getElementById('genreModal').style.display='flex';
 }
-
-document.getElementById('searchInput').addEventListener('input', e => {
-  searchQuery = e.target.value;
-  renderGrid();
-});
-
-function showConfig() {
-  document.getElementById('sheetIdInput').value = config.sheetId || '';
-  document.getElementById('configModal').style.display = 'flex';
+function renderGenreModal(items){
+  const cur=drill||genre;
+  document.getElementById('genreList').innerHTML=items.map(i=>`<div class="mgenre${i.name===cur?' sel':''}" onclick="pickGenre('${i.name.replace(/'/g,"\\'")}')"><span class="mgname">${i.name}</span><span class="mgcount">${i.count}</span></div>`).join('');
 }
-
-function hideConfig() {
-  document.getElementById('configModal').style.display = 'none';
+function filterGenreModal(s){renderGenreModal(s?gModalAll.filter(i=>i.name.toLowerCase().includes(s.toLowerCase())):gModalAll);}
+function pickGenre(g){
+  hideGenreModal();
+  if(tab==='genres'){g==='All'?exitDrill():enterDrill(g);}
+  else{genre=g;render();}
 }
+function hideGenreModal(){document.getElementById('genreModal').style.display='none';}
 
-function saveConfig() {
-  const id = document.getElementById('sheetIdInput').value.trim();
-  if (!id) return;
-  config.sheetId = id;
-  localStorage.setItem(CACHE_KEY, JSON.stringify(config));
-  localStorage.removeItem(DATA_CACHE_KEY);
+function showConfig(){document.getElementById('sheetId').value=cfg.sheetId||'';document.getElementById('configModal').style.display='flex';}
+function hideConfig(){document.getElementById('configModal').style.display='none';}
+function saveConfig(){
+  const id=document.getElementById('sheetId').value.trim();
+  if(!id)return;
+  cfg.sheetId=id;
+  localStorage.setItem(CFG_KEY,JSON.stringify(cfg));
+  localStorage.removeItem(DATA_KEY);
   hideConfig();
-  loadData(true);
+  load(true);
 }
 
-if (!config.sheetId) {
-  showConfig();
-} else {
-  loadData();
-}
+hideConfig();
+load();
 </script>
 </body>
 </html>

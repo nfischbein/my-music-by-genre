@@ -1,0 +1,39 @@
+# --- Credentials & secrets ---
+.env
+*.json.secret
+
+# --- Spotify OAuth token cache ---
+.spotify_token_cache.json
+
+# --- Genre & sync caches ---
+.genre_cache.json
+.genre_cache_albums.json
+.sync_state.json
+
+# --- Checkpoints (resumable fetch progress) ---
+checkpoints/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# --- macOS ---
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+
+# --- Editors ---
+.vscode/
+.idea/
+*.swp
+*.swo
