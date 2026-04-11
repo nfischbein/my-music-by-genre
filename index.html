@@ -469,8 +469,8 @@ function toggleArtistExpand(artistName, artistUrl='') {
   } else {
     expandedArtist = artistName;
   }
-  // If on albums tab, switch to artists tab to show the expand
-  if (tab==='albums') {
+  // If on albums or recent tab, switch to artists tab to show the expand
+  if (tab==='albums' || tab==='recent') {
     tab='artists';
     document.querySelectorAll('.nav-btn').forEach((b,i)=>b.classList.toggle('active',['artists','albums','genres','recent'][i]==='artists'));
     document.getElementById('srtP').style.display='inline-block';
