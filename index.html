@@ -482,7 +482,7 @@ function toggleArtistExpand(artistName, artistUrl='') {
   if (expandedArtist) {
     requestAnimationFrame(()=>{
       const el = document.querySelector('.artist-expand, .litem-expand');
-      if (el) el.scrollIntoView({behavior:'smooth', block:'nearest'});
+      if (el) el.scrollIntoView({behavior:'smooth', block:'center'});
     });
   }
 }
