@@ -528,7 +528,7 @@ function renderCards(data, type) {
 }
 
 function renderGenreList() {
-  const MIN=3;
+  const MIN=5;
   const genres = Object.entries(gIndex).filter(([,c])=>(c.artists+c.albums)>=MIN).sort((a,b)=>(b[1].artists+b[1].albums)-(a[1].artists+a[1].albums));
   document.getElementById('countLbl').textContent='';
   const c = document.getElementById('content');
@@ -588,10 +588,52 @@ function renderDrill(){
 
 function renderRecent(){
   if(sub==='played'){
-    document.getElementById('countLbl').textContent=`${played.length} tracks`;
     const c=document.getElementById('content');
     if(!played.length){c.innerHTML='<div class="state"><span class="icon">🎵</span>No recently played data yet</div>';return;}
-    c.innerHTML=view==='grid'?`<div class="grid">${played.map(r=>cardH(r,'played')).join('')}</div>`:`<div class="list">${played.map((r,i)=>listH(r,'played',i)).join('')}</div>`;
+
+    // Group tracks by album, preserving most-recent-play order
+    const albumMap={};
+    const albumOrder=[];
+    played.forEach(r=>{
+      const key=(r.album_name||'unknown')+'||'+(r.primary_artist_name||'');
+      if(!albumMap[key]){
+        albumMap[key]={
+          album_name: r.album_name||'',
+          primary_artist_name: r.primary_artist_name||'',
+          album_url: r.album_url||r.track_url||'#',
+          image_url: r.image_url||'',
+          artist_url: r.artist_url||'',
+          played_at: r.played_at||'',
+          track_count: 0,
+        };
+        albumOrder.push(key);
+      }
+      albumMap[key].track_count++;
+      // keep most recent played_at
+      if((r.played_at||'') > albumMap[key].played_at) albumMap[key].played_at=r.played_at;
+    });
+
+    const albumRows=albumOrder.map(k=>albumMap[k]);
+    document.getElementById('countLbl').textContent=`${albumRows.length} album${albumRows.length!==1?'s':''}`;
+
+    const html=albumRows.map((a,i)=>{
+      const img=a.image_url;
+      const th=img
+        ?`<div class="lthumb"><img src="${img}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='💿'"></div>`
+        :`<div class="lthumb">💿</div>`;
+      const date=fmtDT(a.played_at);
+      const trackLbl=`${a.track_count} track${a.track_count!==1?'s':''}`;
+      return `<a class="litem" href="${a.album_url}" target="_blank" rel="noopener">
+        <div class="lnum">${i+1}</div>
+        ${th}
+        <div class="linfo">
+          <div class="lname">${a.album_name}</div>
+          <div class="lsub">${a.primary_artist_name}${a.primary_artist_name?' · ':''}${trackLbl}</div>
+        </div>
+        ${date?`<div class="ldate">${date}</div>`:''}
+      </a>`;
+    }).join('');
+    c.innerHTML=`<div class="list">${html}</div>`;
     return;
   }
   let rows=[...artists.map(r=>({...r,_t:'artist'})),...albums.map(r=>({...r,_t:'album'}))].sort((a,b)=>new Date(b.added_date||0)-new Date(a.added_date||0));
@@ -621,7 +663,7 @@ function setView(v){view=v;document.getElementById('vGrid').classList.toggle('ac
 document.getElementById('searchInput').addEventListener('input',e=>{q=e.target.value;render();});
 
 function showGenreModal(){
-  const MIN=3;
+  const MIN=5;
   gModalAll=[{name:'All',count:artists.length+albums.length},...Object.entries(gIndex).filter(([,c])=>(c.artists+c.albums)>=MIN).sort((a,b)=>(b[1].artists+b[1].albums)-(a[1].artists+a[1].albums)).map(([g,c])=>({name:g,count:c.artists+c.albums}))];
   document.getElementById('genreSearch').value='';
   renderGenreModal(gModalAll);
