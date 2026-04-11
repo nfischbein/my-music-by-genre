@@ -120,6 +120,48 @@ a:visited { color: inherit; }
 .mgenre.sel .mgname { color: var(--green); font-weight: 600; }
 .mgenre.sel .mgcount { color: var(--green); }
 
+/* ── Artist inline expand ────────────────────────────────── */
+/* Grid: expand panel spans full width below the row of 2 cards */
+.artist-card-wrap { display: contents; }
+.artist-expand {
+  grid-column: 1 / -1;
+  background: var(--bg3);
+  border: 0.5px solid var(--green);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-top: -4px;
+}
+.aex-header { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 0.5px solid var(--border); }
+.aex-img { width: 44px; height: 44px; border-radius: 22px; object-fit: cover; background: var(--bg2); flex-shrink: 0; display: block; }
+.aex-img-ph { width: 44px; height: 44px; border-radius: 22px; background: var(--bg2); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+.aex-info { flex: 1; min-width: 0; }
+.aex-name { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aex-genres { font-size: 11px; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; }
+.aex-spotify { display: flex; align-items: center; gap: 4px; padding: 5px 10px; border-radius: 14px; background: var(--green); color: #000; font-size: 11px; font-weight: 600; text-decoration: none; flex-shrink: 0; white-space: nowrap; }
+.aex-spotify svg { width: 10px; height: 10px; }
+.aex-close { width: 28px; height: 28px; border-radius: 14px; background: var(--bg2); border: 0.5px solid var(--border); color: var(--text2); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; touch-action: manipulation; }
+.aex-section-lbl { font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.7px; padding: 10px 14px 6px; }
+.aex-album { display: flex; align-items: center; gap: 10px; padding: 8px 14px; text-decoration: none; border-top: 0.5px solid var(--border); }
+.aex-album:active .aex-album-name { color: var(--green); }
+.aex-album-art { width: 40px; height: 40px; border-radius: 5px; object-fit: cover; background: var(--bg2); flex-shrink: 0; display: block; }
+.aex-album-art-ph { width: 40px; height: 40px; border-radius: 5px; background: var(--bg2); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+.aex-album-info { flex: 1; min-width: 0; }
+.aex-album-name { font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aex-album-year { font-size: 11px; color: var(--text2); margin-top: 1px; }
+.aex-album-arrow { font-size: 16px; color: var(--text3); flex-shrink: 0; }
+.aex-empty { padding: 18px 14px 20px; text-align: center; }
+.aex-empty-msg { font-size: 13px; color: var(--text2); margin-bottom: 14px; }
+.aex-empty-btn { display: inline-flex; align-items: center; gap: 5px; padding: 9px 18px; border-radius: 18px; background: var(--green); color: #000; font-size: 13px; font-weight: 600; text-decoration: none; }
+.aex-empty-btn svg { width: 12px; height: 12px; }
+/* List view: expand sits as a full-width block below the row */
+.litem-artist { cursor: pointer; }
+.litem-artist:active .lname { color: var(--green); }
+.litem-expand { background: var(--bg3); border-left: 2px solid var(--green); margin: 0 0 0 60px; border-radius: 0 0 8px 8px; overflow: hidden; }
+.litem-expand .aex-header { padding: 10px 12px; }
+.litem-expand .aex-album { padding: 7px 12px; }
+.litem-expand .aex-section-lbl { padding: 8px 12px 4px; }
+.litem-expand .aex-empty { padding: 14px 12px 16px; }
+
 .cfg { background: var(--bg2); border-radius: 20px 20px 0 0; border: 0.5px solid var(--border); padding: 24px 20px calc(24px + var(--safe-bottom)); width: 100%; }
 .cfg h2 { font-size: 18px; margin-bottom: 8px; }
 .cfg p { font-size: 13px; color: var(--text2); margin-bottom: 20px; line-height: 1.6; }
@@ -182,10 +224,10 @@ a:visited { color: inherit; }
   <button class="sort-btn" id="srtN" onclick="setSort('name')">A–Z</button>
   <button class="sort-btn" id="srtP" onclick="setSort('popular')" style="display:none">Popular</button>
   <div class="view-toggle">
-    <button class="view-btn active" id="vGrid" onclick="setView('grid')">
+    <button class="view-btn" id="vGrid" onclick="setView('grid')">
       <svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>
     </button>
-    <button class="view-btn" id="vList" onclick="setView('list')">
+    <button class="view-btn active" id="vList" onclick="setView('list')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
     </button>
   </div>
@@ -224,7 +266,7 @@ if (!cfg.sheetId) {
 }
 
 let artists = [], albums = [], played = [];
-let tab = 'artists', sub = 'added', sort = 'recent', view = 'grid';
+let tab = 'artists', sub = 'added', sort = 'recent', view = 'list';
 let genre = 'All', drill = null, drillSub = 'artists', q = '';
 let gIndex = {}, gModalAll = [];
 
@@ -320,29 +362,125 @@ function filtered(data, typeStr) {
   });
 }
 
+function spotifyIcon(size=11){return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424a.623.623 0 0 1-.857.207c-2.348-1.435-5.304-1.76-8.785-.964a.623.623 0 1 1-.277-1.215c3.809-.87 7.077-.496 9.712 1.115a.623.623 0 0 1 .207.857zm1.223-2.722a.78.78 0 0 1-1.072.257c-2.687-1.652-6.785-2.131-9.965-1.166a.78.78 0 0 1-.973-.519.78.78 0 0 1 .52-.972c3.632-1.102 8.147-.568 11.233 1.328a.78.78 0 0 1 .257 1.072zm.105-2.835C14.692 8.95 9.375 8.775 6.297 9.71a.937.937 0 1 1-.543-1.793c3.532-1.072 9.404-.865 13.115 1.338a.937.937 0 0 1-.955 1.612z"/></svg>`;}
+
+function buildExpandInner(artist, listMode=false) {
+  const artistAlbums = albums
+    .filter(a => (a.primary_artist_name||'').toLowerCase() === (artist.artist_name||'').toLowerCase())
+    .sort((a,b) => (a.album_name||'').localeCompare(b.album_name||''));
+  const url = artist.artist_url || '#';
+  const img = artist.artist_image_url;
+  const genreDisplay = (artist.final_genres||'').split(',').map(g=>g.trim()).filter(Boolean).slice(0,3).join(' · ');
+
+  const thumb = img
+    ? `<img class="aex-img" src="${img}" alt="" onerror="this.style.display='none';this.nextSibling.style.display='flex'"><div class="aex-img-ph" style="display:none">🎤</div>`
+    : `<div class="aex-img-ph">🎤</div>`;
+
+  const safeName = (artist.artist_name||'').replace(/'/g,"\\'");
+  const header = `<div class="aex-header">
+    ${thumb}
+    <div class="aex-info">
+      <div class="aex-name">${artist.artist_name||''}</div>
+      ${genreDisplay ? `<div class="aex-genres">${genreDisplay}</div>` : ''}
+    </div>
+    ${url!=='#' ? `<a class="aex-spotify" href="${url}" target="_blank" rel="noopener">${spotifyIcon(10)} Spotify</a>` : ''}
+    <button class="aex-close" onclick="closeExpand(event,'${safeName}')">×</button>
+  </div>`;
+
+  let body;
+  if (artistAlbums.length) {
+    const lbl = `<div class="aex-section-lbl">${artistAlbums.length} saved album${artistAlbums.length!==1?'s':''}</div>`;
+    const rows = artistAlbums.map(a => {
+      const albImg = a.album_image_url||'';
+      const albUrl = a.album_url||'#';
+      const year = a.release_date ? a.release_date.slice(0,4) : '';
+      const thumb2 = albImg
+        ? `<img class="aex-album-art" src="${albImg}" alt="" loading="lazy" onerror="this.style.display='none';this.nextSibling.style.display='flex'"><div class="aex-album-art-ph" style="display:none">💿</div>`
+        : `<div class="aex-album-art-ph">💿</div>`;
+      return `<a class="aex-album" href="${albUrl}" target="_blank" rel="noopener">
+        ${thumb2}
+        <div class="aex-album-info">
+          <div class="aex-album-name">${a.album_name||''}</div>
+          ${year ? `<div class="aex-album-year">${year}</div>` : ''}
+        </div>
+        <div class="aex-album-arrow">›</div>
+      </a>`;
+    }).join('');
+    body = lbl + rows;
+  } else {
+    body = `<div class="aex-empty">
+      <div class="aex-empty-msg">No saved albums for this artist.</div>
+      ${url!=='#' ? `<a class="aex-empty-btn" href="${url}" target="_blank" rel="noopener">${spotifyIcon(12)} Open in Spotify</a>` : ''}
+    </div>`;
+  }
+  return header + body;
+}
+
+let expandedArtist = null; // tracks which artist is currently expanded
+
+function toggleArtistExpand(artistName) {
+  if (expandedArtist === artistName) {
+    expandedArtist = null;
+  } else {
+    expandedArtist = artistName;
+  }
+  // Re-render current view to reflect the change
+  if (tab==='artists') renderCards(artists,'artist');
+  else if (tab==='genres' && drill) renderDrill();
+  else if (tab==='recent') renderRecent();
+}
+
+function closeExpand(e, artistName) {
+  e.preventDefault();
+  e.stopPropagation();
+  expandedArtist = null;
+  if (tab==='artists') renderCards(artists,'artist');
+  else if (tab==='genres' && drill) renderDrill();
+  else if (tab==='recent') renderRecent();
+}
+
 function cardH(r, type) {
-  const isA=type==='artist';
-  const name=isA?(r.artist_name||''):(r.album_name||r.track_name||'');
-  const sub2=isA?'':(r.primary_artist_name||'');
-  const img=isA?r.artist_image_url:(r.album_image_url||r.image_url);
-  const url=isA?r.artist_url:(r.album_url||r.track_url||'#');
-  const tags=(r.final_genres||'').split(',').map(g=>g.trim()).filter(Boolean).slice(0,2).map(g=>`<span class="gtag">${g}</span>`).join('');
-  const date=type==='played'?fmtDT(r.played_at):fmtD(r.added_date);
-  const em=isA?'🎤':'💿';
-  const imgEl=img?`<img class="card-img" src="${img}" alt="" loading="lazy" onerror="this.style.display='none';this.nextSibling.style.display='flex'"><div class="card-ph" style="display:none">${em}</div>`:`<div class="card-ph">${em}</div>`;
+  const isA = type==='artist';
+  const name = isA?(r.artist_name||''):(r.album_name||r.track_name||'');
+  const sub2 = isA?'':(r.primary_artist_name||'');
+  const img = isA?r.artist_image_url:(r.album_image_url||r.image_url);
+  const url = isA?r.artist_url:(r.album_url||r.track_url||'#');
+  const tags = (r.final_genres||'').split(',').map(g=>g.trim()).filter(Boolean).slice(0,2).map(g=>`<span class="gtag">${g}</span>`).join('');
+  const date = type==='played'?fmtDT(r.played_at):fmtD(r.added_date);
+  const em = isA?'🎤':'💿';
+  const imgEl = img?`<img class="card-img" src="${img}" alt="" loading="lazy" onerror="this.style.display='none';this.nextSibling.style.display='flex'"><div class="card-ph" style="display:none">${em}</div>`:`<div class="card-ph">${em}</div>`;
+
+  if (isA) {
+    const safeName = (r.artist_name||'').replace(/'/g,"\\'");
+    const isOpen = expandedArtist === r.artist_name;
+    const borderStyle = isOpen ? 'border-color:var(--green)' : '';
+    return `<div class="card" onclick="toggleArtistExpand('${safeName}')" style="cursor:pointer;${borderStyle}">${imgEl}<div class="card-body"><div class="card-name">${name}</div><div class="card-genres">${tags}</div>${date?`<div class="card-date">${date}</div>`:''}</div></div>`;
+  }
   return `<a class="card" href="${url||'#'}" target="_blank" rel="noopener">${imgEl}<div class="card-body"><div class="card-name">${name}</div>${sub2?`<div class="card-sub">${sub2}</div>`:''}<div class="card-genres">${tags}</div>${date?`<div class="card-date">${date}</div>`:''}</div></a>`;
 }
 
 function listH(r, type, idx) {
-  const isA=type==='artist';
-  const name=isA?(r.artist_name||''):(r.album_name||r.track_name||'');
-  const sub2=isA?(r.final_genres||'').split(',')[0]?.trim()||'':(r.primary_artist_name||'');
-  const img=isA?r.artist_image_url:(r.album_image_url||r.image_url);
-  const url=isA?r.artist_url:(r.album_url||r.track_url||'#');
-  const date=type==='played'?fmtDT(r.played_at):fmtD(r.added_date);
-  const em=isA?'🎤':'💿';
-  const th=img?`<div class="lthumb"><img src="${img}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='${em}'"></div>`:`<div class="lthumb">${em}</div>`;
-  const num=idx!=null?`<div class="lnum">${idx+1}</div>`:'';
+  const isA = type==='artist';
+  const name = isA?(r.artist_name||''):(r.album_name||r.track_name||'');
+  const sub2 = isA?(r.final_genres||'').split(',')[0]?.trim()||'':(r.primary_artist_name||'');
+  const img = isA?r.artist_image_url:(r.album_image_url||r.image_url);
+  const url = isA?r.artist_url:(r.album_url||r.track_url||'#');
+  const date = type==='played'?fmtDT(r.played_at):fmtD(r.added_date);
+  const em = isA?'🎤':'💿';
+  const th = img?`<div class="lthumb"><img src="${img}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='${em}'"></div>`:`<div class="lthumb">${em}</div>`;
+  const num = idx!=null?`<div class="lnum">${idx+1}</div>`:'';
+
+  if (isA) {
+    const safeName = (r.artist_name||'').replace(/'/g,"\\'");
+    const isOpen = expandedArtist === r.artist_name;
+    const expandHTML = isOpen
+      ? `<div class="litem-expand">${buildExpandInner(r, true)}</div>`
+      : '';
+    return `<div>
+      <div class="litem litem-artist" onclick="toggleArtistExpand('${safeName}')">${num}${th}<div class="linfo"><div class="lname">${name}</div>${sub2?`<div class="lsub">${sub2}</div>`:''}</div>${date?`<div class="ldate">${date}</div>`:''}</div>
+      ${expandHTML}
+    </div>`;
+  }
   return `<a class="litem" href="${url||'#'}" target="_blank" rel="noopener">${num}${th}<div class="linfo"><div class="lname">${name}</div>${sub2?`<div class="lsub">${sub2}</div>`:''}</div>${date?`<div class="ldate">${date}</div>`:''}</a>`;
 }
 
@@ -352,26 +490,41 @@ function renderCards(data, type) {
   const c = document.getElementById('content');
   if (!rows.length){c.innerHTML='<div class="state"><span class="icon">🔍</span>No results</div>';return;}
 
-  // Albums in list view + A-Z: group by artist
-  if (type==='album' && view==='list' && sort==='name') {
-    const groups = {};
-    const order = [];
-    rows.forEach(r => {
-      const artist = r.primary_artist_name || 'Unknown Artist';
-      if (!groups[artist]) { groups[artist] = []; order.push(artist); }
-      groups[artist].push(r);
-    });
-    let html = '<div class="list">';
-    order.forEach(artist => {
-      html += `<div class="artist-header">${artist}</div>`;
-      groups[artist].forEach((r, i) => { html += listH(r, 'album', i); });
+
+
+  if (view==='list') {
+    c.innerHTML = `<div class="list">${rows.map((r,i)=>listH(r,type,i)).join('')}</div>`;
+    return;
+  }
+
+  // Grid view — for artists, inject expand panel after the card in the correct row
+  if (type==='artist') {
+    let html = '<div class="grid">';
+    rows.forEach((r, i) => {
+      html += cardH(r, type);
+      // After every 2nd card (i=1,3,5…) OR after the last card if odd count,
+      // check if the expanded artist is in this pair
+      const isEvenIndex = (i % 2 === 1);
+      const isLast = (i === rows.length - 1);
+      if (isEvenIndex || isLast) {
+        // Pair is rows[i-1] (or rows[i] if last+odd) and rows[i]
+        const pairStart = isLast && rows.length % 2 === 1 ? i : i - 1;
+        const pairNames = [rows[pairStart].artist_name];
+        if (!isLast || rows.length % 2 === 0) pairNames.push(rows[i].artist_name);
+        if (expandedArtist && pairNames.includes(expandedArtist)) {
+          const artist = artists.find(a => a.artist_name === expandedArtist);
+          if (artist) {
+            html += `<div class="artist-expand">${buildExpandInner(artist, false)}</div>`;
+          }
+        }
+      }
     });
     html += '</div>';
     c.innerHTML = html;
     return;
   }
 
-  c.innerHTML = view==='grid' ? `<div class="grid">${rows.map(r=>cardH(r,type)).join('')}</div>` : `<div class="list">${rows.map((r,i)=>listH(r,type,i)).join('')}</div>`;
+  c.innerHTML = `<div class="grid">${rows.map(r=>cardH(r,type)).join('')}</div>`;
 }
 
 function renderGenreList() {
@@ -406,6 +559,30 @@ function renderDrill(){
   document.getElementById('countLbl').textContent=`${rows.length} ${type}s`;
   const c=document.getElementById('content');
   if(!rows.length){c.innerHTML='<div class="state"><span class="icon">🔍</span>No results</div>';return;}
+
+  if (type==='artist') {
+    if (view==='list') {
+      c.innerHTML=`<div class="list">${rows.map((r,i)=>listH(r,type,i)).join('')}</div>`;
+    } else {
+      let html='<div class="grid">';
+      rows.forEach((r,i)=>{
+        html+=cardH(r,type);
+        const isEvenIndex=(i%2===1), isLast=(i===rows.length-1);
+        if(isEvenIndex||isLast){
+          const pairStart=isLast&&rows.length%2===1?i:i-1;
+          const pairNames=[rows[pairStart].artist_name];
+          if(!isLast||rows.length%2===0)pairNames.push(rows[i].artist_name);
+          if(expandedArtist&&pairNames.includes(expandedArtist)){
+            const artist=artists.find(a=>a.artist_name===expandedArtist);
+            if(artist)html+=`<div class="artist-expand">${buildExpandInner(artist,false)}</div>`;
+          }
+        }
+      });
+      html+='</div>';
+      c.innerHTML=html;
+    }
+    return;
+  }
   c.innerHTML=view==='grid'?`<div class="grid">${rows.map(r=>cardH(r,type)).join('')}</div>`:`<div class="list">${rows.map((r,i)=>listH(r,type,i)).join('')}</div>`;
 }
 
@@ -426,7 +603,7 @@ function renderRecent(){
 }
 
 function switchTab(t){
-  tab=t;drill=null;genre='All';q='';
+  tab=t;drill=null;genre='All';q='';expandedArtist=null;
   document.getElementById('searchInput').value='';
   document.getElementById('srtP').style.display = t==='artists' ? 'inline-block' : 'none';
   if (sort==='popular' && t!=='artists') { sort='recent'; document.getElementById('srtR').classList.add('active'); document.getElementById('srtP').classList.remove('active'); }
