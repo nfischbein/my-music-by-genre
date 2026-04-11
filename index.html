@@ -376,8 +376,21 @@ function filtered(data, typeStr) {
 
 function spotifyIcon(size=11){return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424a.623.623 0 0 1-.857.207c-2.348-1.435-5.304-1.76-8.785-.964a.623.623 0 1 1-.277-1.215c3.809-.87 7.077-.496 9.712 1.115a.623.623 0 0 1 .207.857zm1.223-2.722a.78.78 0 0 1-1.072.257c-2.687-1.652-6.785-2.131-9.965-1.166a.78.78 0 0 1-.973-.519.78.78 0 0 1 .52-.972c3.632-1.102 8.147-.568 11.233 1.328a.78.78 0 0 1 .257 1.072zm.105-2.835C14.692 8.95 9.375 8.775 6.297 9.71a.937.937 0 1 1-.543-1.793c3.532-1.072 9.404-.865 13.115 1.338a.937.937 0 0 1-.955 1.612z"/></svg>`;}
 
+function toggleArtistExpandStub(artistName, stubArtist) {
+  // For recently played artists — uses stub if not in followed list
+  if (expandedArtist === artistName) {
+    expandedArtist = null;
+  } else {
+    expandedArtist = artistName;
+  }
+  if (tab==='recent') renderRecent();
+  else if (tab==='artists') renderCards(artists,'artist');
+  else if (tab==='genres' && drill) renderDrill();
+}
+
 function buildExpandInner(artist, listMode=false) {
-  const artistAlbums = albums
+  const isNotFollowing = artist._notFollowing === true;
+  const artistAlbums = isNotFollowing ? [] : albums
     .filter(a => (a.primary_artist_name||'').toLowerCase() === (artist.artist_name||'').toLowerCase())
     .sort((a,b) => (a.album_name||'').localeCompare(b.album_name||''));
   const url = artist.artist_url || '#';
@@ -394,8 +407,8 @@ function buildExpandInner(artist, listMode=false) {
     <div class="aex-info">
       <div class="aex-name">${artist.artist_name||''}</div>
       ${genreDisplay ? `<div class="aex-genres">${genreDisplay}</div>` : ''}
+      ${isNotFollowing ? `<div class="aex-genres" style="color:var(--text3)">Not following</div>` : ''}
     </div>
-    ${url!=='#' ? `<a class="aex-spotify" href="${url}" target="_blank" rel="noopener">${spotifyIcon(10)} Spotify</a>` : ''}
     <button class="aex-close" onclick="closeExpand(event,'${safeName}')">×</button>
   </div>`;
 
@@ -420,8 +433,11 @@ function buildExpandInner(artist, listMode=false) {
     }).join('');
     body = lbl + rows;
   } else {
+    const msg = isNotFollowing
+      ? `You're not following this artist.`
+      : `No saved albums for this artist.`;
     body = `<div class="aex-empty">
-      <div class="aex-empty-msg">No saved albums for this artist.</div>
+      <div class="aex-empty-msg">${msg}</div>
       ${url!=='#' ? `<a class="aex-empty-btn" href="${url}" target="_blank" rel="noopener">${spotifyIcon(12)} Open in Spotify</a>` : ''}
     </div>`;
   }
@@ -625,7 +641,6 @@ function renderRecent(){
       const artistRows=artistOrder.map(k=>artistMap[k]);
       document.getElementById('countLbl').textContent=`${artistRows.length} artist${artistRows.length!==1?'s':''}`;
       const html=artistRows.map((a,i)=>{
-        // Try to find artist image from artists array
         const fullArtist=artists.find(ar=>
           (ar.artist_url && ar.artist_url===(a.artist_url||'')) ||
           (ar.artist_name||'').toLowerCase()===(a.artist_name||'').toLowerCase()
@@ -636,14 +651,22 @@ function renderRecent(){
           :`<div class="lthumb">🎤</div>`;
         const date=fmtDT(a.played_at);
         const safeName=(a.artist_name||'').replace(/'/g,"\\'");
-        return `<div class="litem litem-artist" onclick="toggleArtistExpand('${safeName}')">
-          <div class="lnum">${i+1}</div>
-          ${th}
-          <div class="linfo">
-            <div class="lname">${a.artist_name}</div>
-            <div class="lsub">${a.track_count} track${a.track_count!==1?'s':''} played</div>
+        const followLbl=fullArtist?'':`<span style="font-size:10px;color:var(--text3);margin-left:6px">not following</span>`;
+        const isOpen=expandedArtist===a.artist_name;
+        // Use fullArtist if available, otherwise create a stub for the expand panel
+        const expandArtist=fullArtist||{artist_name:a.artist_name,artist_url:a.artist_url||'',artist_image_url:'',final_genres:'',_notFollowing:true};
+        const expandHTML=isOpen?`<div class="litem-expand">${buildExpandInner(expandArtist,true)}</div>`:'';
+        return `<div>
+          <div class="litem litem-artist" onclick="toggleArtistExpandStub('${safeName}',${JSON.stringify(expandArtist).replace(/'/g,"\\'")})">
+            <div class="lnum">${i+1}</div>
+            ${th}
+            <div class="linfo">
+              <div class="lname">${a.artist_name}${followLbl}</div>
+              <div class="lsub">${a.track_count} track${a.track_count!==1?'s':''} played</div>
+            </div>
+            ${date?`<div class="ldate">${date}</div>`:''}
           </div>
-          ${date?`<div class="ldate">${date}</div>`:''}
+          ${expandHTML}
         </div>`;
       }).join('');
       c.innerHTML=`<div class="list">${html}</div>`;
