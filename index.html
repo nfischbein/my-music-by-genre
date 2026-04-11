@@ -389,6 +389,11 @@ function toggleArtistExpandStub(artistName, stubArtist) {
 }
 
 function buildExpandInner(artist, listMode=false) {
+  // For non-followed artists from recently played, check stub map
+  if (!artist._notFollowing) {
+    const stub = window._playedArtistStubs && window._playedArtistStubs[artist.artist_name];
+    if (stub) artist = stub;
+  }
   const isNotFollowing = artist._notFollowing === true;
   const artistAlbums = isNotFollowing ? [] : albums
     .filter(a => (a.primary_artist_name||'').toLowerCase() === (artist.artist_name||'').toLowerCase())
@@ -452,7 +457,6 @@ function toggleArtistExpand(artistName) {
   } else {
     expandedArtist = artistName;
   }
-  // Re-render current view to reflect the change
   if (tab==='artists') renderCards(artists,'artist');
   else if (tab==='genres' && drill) renderDrill();
   else if (tab==='recent') renderRecent();
@@ -640,6 +644,8 @@ function renderRecent(){
       });
       const artistRows=artistOrder.map(k=>artistMap[k]);
       document.getElementById('countLbl').textContent=`${artistRows.length} artist${artistRows.length!==1?'s':''}`;
+      // Store stubs for non-followed artists so onclick can look them up safely
+      window._playedArtistStubs = {};
       const html=artistRows.map((a,i)=>{
         const fullArtist=artists.find(ar=>
           (ar.artist_url && ar.artist_url===(a.artist_url||'')) ||
@@ -653,11 +659,13 @@ function renderRecent(){
         const safeName=(a.artist_name||'').replace(/'/g,"\\'");
         const followLbl=fullArtist?'':`<span style="font-size:10px;color:var(--text3);margin-left:6px">not following</span>`;
         const isOpen=expandedArtist===a.artist_name;
-        // Use fullArtist if available, otherwise create a stub for the expand panel
-        const expandArtist=fullArtist||{artist_name:a.artist_name,artist_url:a.artist_url||'',artist_image_url:'',final_genres:'',_notFollowing:true};
+        if(!fullArtist){
+          window._playedArtistStubs[a.artist_name]={artist_name:a.artist_name,artist_url:a.artist_url||'',artist_image_url:'',final_genres:'',_notFollowing:true};
+        }
+        const expandArtist=fullArtist||window._playedArtistStubs[a.artist_name];
         const expandHTML=isOpen?`<div class="litem-expand">${buildExpandInner(expandArtist,true)}</div>`:'';
         return `<div>
-          <div class="litem litem-artist" onclick="toggleArtistExpandStub('${safeName}',${JSON.stringify(expandArtist).replace(/'/g,"\\'")})">
+          <div class="litem litem-artist" onclick="toggleArtistExpand('${safeName}')">
             <div class="lnum">${i+1}</div>
             ${th}
             <div class="linfo">
