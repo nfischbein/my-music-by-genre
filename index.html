@@ -460,7 +460,7 @@ function filtered(data, typeStr) {
   if (genre!=='All') rows=rows.filter(r=>(r.final_genres||'').split(',').map(g=>g.trim().toLowerCase()).includes(genre.toLowerCase()));
   if (q) { const lq=q.toLowerCase(); rows=rows.filter(r=>(r.artist_name||r.album_name||r.track_name||'').toLowerCase().includes(lq)||(r.final_genres||'').toLowerCase().includes(lq)); }
   return [...rows].sort((a,b)=>{
-    if (sort==='name') return (a.artist_name||a.album_name||'').localeCompare(b.artist_name||b.album_name||'');
+    if (sort==='name') return artistSortKey(a.artist_name||a.album_name||'').localeCompare(artistSortKey(b.artist_name||b.album_name||''));
     if (sort==='popular') return (parseInt(b.popularity)||0)-(parseInt(a.popularity)||0);
     return new Date(b.added_date||0)-new Date(a.added_date||0);
   });
@@ -732,7 +732,7 @@ function renderDrill(){
   const type=drillSub==='artists'?'artist':'album';
   let rows=data.filter(r=>(r.final_genres||'').split(',').map(g=>g.trim().toLowerCase()).includes(drill.toLowerCase()));
   if(q){const lq=q.toLowerCase();rows=rows.filter(r=>(r.artist_name||r.album_name||'').toLowerCase().includes(lq));}
-  rows=[...rows].sort((a,b)=>sort==='name'?(a.artist_name||a.album_name||'').localeCompare(b.artist_name||b.album_name||''):new Date(b.added_date||0)-new Date(a.added_date||0));
+  rows=[...rows].sort((a,b)=>sort==='name'?artistSortKey(a.artist_name||a.album_name||'').localeCompare(artistSortKey(b.artist_name||b.album_name||'')):new Date(b.added_date||0)-new Date(a.added_date||0));
   document.getElementById('countLbl').textContent=`${rows.length} ${type}s`;
   const c=document.getElementById('content');
   if(!rows.length){c.innerHTML='<div class="state"><span class="icon">🔍</span>No results</div>';return;}
@@ -879,7 +879,7 @@ function renderRecent(){
   if (addedSub==='artists') {
     rows = [...artists.map(r=>({...r,_t:'artist'}))];
     if(q){const lq=q.toLowerCase();rows=rows.filter(r=>(r.artist_name||'').toLowerCase().includes(lq));}
-    rows.sort((a,b)=>sort==='name'?(a.artist_name||'').localeCompare(b.artist_name||''):sort==='popular'?(parseInt(b.popularity)||0)-(parseInt(a.popularity)||0):new Date(b.added_date||0)-new Date(a.added_date||0));
+    rows.sort((a,b)=>sort==='name'?artistSortKey(a.artist_name||'').localeCompare(artistSortKey(b.artist_name||'')):sort==='popular'?(parseInt(b.popularity)||0)-(parseInt(a.popularity)||0):new Date(b.added_date||0)-new Date(a.added_date||0));
     document.getElementById('countLbl').textContent=`${rows.length} artists`;
   } else {
     rows = [...albums.map(r=>({...r,_t:'album'}))];
@@ -967,7 +967,44 @@ function saveConfig(){
   load(true);
 }
 
-// ── PIN protection ────────────────────────────────────────────────────────
+// ── Artist name sort key ──────────────────────────────────────────────────
+// Rules:
+//   1. Strip leading "The ", "A ", "An " for all names
+//   2. If name looks like "Firstname Lastname" (exactly 2 words, no article),
+//      sort by "Lastname Firstname" — e.g. "Michael Jackson" → "jackson michael"
+//   3. Everything else sorts by first significant word
+// Display names are never changed — only the sort key is affected.
+const ARTICLES = /^(the|a|an)\s+/i;
+const PEOPLE_EXCEPTIONS = new Set([
+  // Bands that look like two-word people names — sort by first word
+  'black crowes','black keys','black flag','black sabbath','black mountain',
+  'white stripes','white lies','dead kennedys','dead weather',
+  'talking heads','rolling stones','beastie boys','beastie boys',
+  'blind faith','blind melon','buffalo springfield','creedence clearwater',
+  'grateful dead','grand funk','lynyrd skynyrd','molly hatchet',
+  'mountain goats','neutral milk','night ranger','pearl jam',
+  'phish','pixies','primus','queens of the stone age',
+  'radiohead','rage against','red hot','smashing pumpkins',
+  'soundgarden','stone temple','stone roses','velvet underground',
+  'violent femmes','widespread panic','wilco','weezer',
+]);
+
+function artistSortKey(name) {
+  if (!name) return '';
+  // Strip leading article
+  const stripped = name.replace(ARTICLES, '').trim();
+  const lower = stripped.toLowerCase();
+  const words = lower.split(/\s+/);
+
+  // Two-word name: check if it's a person (not a known band)
+  if (words.length === 2 && !PEOPLE_EXCEPTIONS.has(lower)) {
+    // Treat as "Firstname Lastname" → sort by last name
+    return words[1] + ' ' + words[0];
+  }
+
+  // Everything else: sort by first significant word
+  return lower;
+}
 const PIN_KEY = 'mmg_pin_v1';
 // SHA-256 hash of PIN "7482" — the actual PIN is never stored in code or localStorage
 const PIN_HASH = '91bca017d06790f59b5d54a86a592298c5ad8e88e0b7fc98cae7bdee361473ba';
