@@ -940,20 +940,14 @@ def consolidate_genres(genres_str):
         return genres_str
 
     original = [g.strip() for g in genres_str.split(",") if g.strip()]
-    seen = set(g.lower() for g in original)
-    parents_to_add = []
+    buckets_to_add = []
 
     for g in original:
-        # Check GENRE_PARENT_MAP first
-        parent = GENRE_PARENT_MAP.get(g.lower())
-        # Fall back to EXTRA_GENRE_MAP
-        if not parent:
-            parent = EXTRA_GENRE_MAP.get(g.lower())
-        if parent and parent.lower() not in seen:
-            seen.add(parent.lower())
-            parents_to_add.append(parent)
+        bucket = GENRE_BUCKET_LOOKUP.get(g.lower())
+        if bucket and bucket not in buckets_to_add and bucket not in original:
+            buckets_to_add.append(bucket)
 
-    combined = original + parents_to_add
+    combined = original + buckets_to_add
     return ", ".join(combined)
 
 
