@@ -325,7 +325,10 @@ async function load(force=false) {
   document.getElementById('content').innerHTML='<div class="state"><div class="spin"></div>Loading your music...</div>';
   const [a,al,p] = await Promise.all([fetchSheet('By_Genre_Artists'),fetchSheet('By_Genre_Albums'),fetchSheet('Recently_Played')]);
   artists = dedup(a, r=>r.artist_url||r.artist_name);
-  albums = dedup(al, r=>r.album_url||(r.album_name||'')+'||'+(r.primary_artist_name||''));
+  albums = dedup(al, r=>{
+    const url=(r.album_url||'').trim().toLowerCase().replace(/\/$/,'');
+    return url || ((r.album_name||'').trim().toLowerCase()+'||'+(r.primary_artist_name||'').trim().toLowerCase());
+  });
   played = p;
   buildIdx();
   localStorage.setItem(DATA_KEY, JSON.stringify({ts:Date.now(),artists,albums,played}));

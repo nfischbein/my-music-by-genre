@@ -347,6 +347,9 @@ def build_recently_played_dataframe(recently_played, artist_details_map):
         primary_artist_id = primary_artist.get("id", "")
         artist_obj = artist_details_map.get(primary_artist_id, {})
         artist_url = safe_get(artist_obj, "external_urls", "spotify", default="")
+        # Construct URL from ID if not available from artist_details_map
+        if not artist_url and primary_artist_id:
+            artist_url = f"https://open.spotify.com/artist/{primary_artist_id}"
         rows.append({
             "played_at": played_at,
             "track_name": track_name,
@@ -941,9 +944,9 @@ def consolidate_genres(genres_str):
     buckets_to_add = []
 
     for g in original:
+        # Check GENRE_PARENT_MAP first
         bucket = GENRE_BUCKET_LOOKUP.get(g.lower())
-        if bucket and bucket.lower() not in seen_lower:
-            seen_lower.add(bucket.lower())
+        if bucket and bucket not in buckets_to_add and bucket not in original:
             buckets_to_add.append(bucket)
 
     combined = original + buckets_to_add
