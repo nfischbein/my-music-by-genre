@@ -940,16 +940,20 @@ def consolidate_genres(genres_str):
         return genres_str
 
     original = [g.strip() for g in genres_str.split(",") if g.strip()]
-    seen_lower = set(g.lower() for g in original)
-    buckets_to_add = []
+    seen = set(g.lower() for g in original)
+    parents_to_add = []
 
     for g in original:
         # Check GENRE_PARENT_MAP first
-        bucket = GENRE_BUCKET_LOOKUP.get(g.lower())
-        if bucket and bucket not in buckets_to_add and bucket not in original:
-            buckets_to_add.append(bucket)
+        parent = GENRE_PARENT_MAP.get(g.lower())
+        # Fall back to EXTRA_GENRE_MAP
+        if not parent:
+            parent = EXTRA_GENRE_MAP.get(g.lower())
+        if parent and parent.lower() not in seen:
+            seen.add(parent.lower())
+            parents_to_add.append(parent)
 
-    combined = original + buckets_to_add
+    combined = original + parents_to_add
     return ", ".join(combined)
 
 
@@ -2448,17 +2452,72 @@ def main():
             album_artist_ids
         )
 
+    # ── Merge in album-only artists (saved albums but not followed) ──────────
+    # Build a map of artist_id -> best album image and most recent added_at
+    followed_ids = set(new_artists_df["artist_id"].tolist()) if not new_artists_df.empty else set()
+    album_only_map = {}
+    for item in saved_albums:
+        added_at = item.get("added_at", "")
+        album = item.get("album") or {}
+        images = album.get("images", []) or []
+        image_url = images[0].get("url", "") if images else ""
+        for a in album.get("artists", []):
+            aid = a.get("id")
+            aname = a.get("name", "")
+            if not aid or aid in followed_ids:
+                continue
+            # Skip "Various Artists"
+            if aname.lower() == "various artists":
+                continue
+            if aid not in album_only_map:
+                album_only_map[aid] = {
+                    "artist_id": aid,
+                    "artist_name": aname,
+                    "artist_uri": f"spotify:artist:{aid}",
+                    "artist_url": f"https://open.spotify.com/artist/{aid}",
+                    "artist_image_url": image_url,
+                    "followers": None,
+                    "popularity": None,
+                    "spotify_genres": "",
+                    "web_genres": "",
+                    "final_genres": "",
+                    "genre_source": "",
+                    "genre_confidence": 0.0,
+                    "genre_notes": "",
+                    "followed_flag": False,
+                    "appears_in_liked_tracks_flag": aid in track_artist_ids,
+                    "appears_in_saved_albums_flag": True,
+                    "active_status": True,
+                    "first_seen_ts": datetime.now(timezone.utc).isoformat(),
+                    "last_seen_ts": datetime.now(timezone.utc).isoformat(),
+                    "missing_run_count": 0,
+                }
+            else:
+                # Keep most recent album image (best proxy for artist image)
+                if added_at > album_only_map[aid].get("last_seen_ts", ""):
+                    if image_url:
+                        album_only_map[aid]["artist_image_url"] = image_url
+
+    if album_only_map:
+        album_only_df = pd.DataFrame(list(album_only_map.values()))
+        log(f"Adding {len(album_only_df)} album-only artists (saved albums but not followed).")
+        new_artists_df = pd.concat([new_artists_df, album_only_df], ignore_index=True)
+        new_artists_df = new_artists_df.drop_duplicates(subset=["artist_id"])
+
     new_albums_df = build_albums_dataframe(saved_albums)
     new_tracks_df = build_tracks_dataframe(saved_tracks, artist_details_map)
 
     # Add artist_url to tracks & albums via artist_details_map
+    # Fall back to constructing URL from artist ID if not in map
     if not new_tracks_df.empty:
         new_tracks_df["artist_url"] = new_tracks_df["primary_artist_id"].map(
             lambda aid: safe_get(artist_details_map.get(aid, {}), "external_urls", "spotify", default="")
+                        or (f"https://open.spotify.com/artist/{aid}" if aid else "")
         )
     if not new_albums_df.empty:
         new_albums_df["artist_url"] = new_albums_df["primary_artist_id"].map(
             lambda aid: safe_get(artist_details_map.get(aid, {}), "external_urls", "spotify", default="")
+                        or (f"https://open.spotify.com/artist/{aid}" if aid else "")
         )
 
     # Genre enrichment on artists
