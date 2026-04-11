@@ -314,8 +314,8 @@ async function load(force=false) {
   }
   document.getElementById('content').innerHTML='<div class="state"><div class="spin"></div>Loading your music...</div>';
   const [a,al,p] = await Promise.all([fetchSheet('By_Genre_Artists'),fetchSheet('By_Genre_Albums'),fetchSheet('Recently_Played')]);
-  artists = dedup(a, r=>r.artist_name||r.artist_url);
-  albums = dedup(al, r=>(r.album_name||'')+'||'+(r.primary_artist_name||''));
+  artists = dedup(a, r=>r.artist_url||r.artist_name);
+  albums = dedup(al, r=>r.album_url||(r.album_name||'')+'||'+(r.primary_artist_name||''));
   played = p;
   buildIdx();
   localStorage.setItem(DATA_KEY, JSON.stringify({ts:Date.now(),artists,albums,played}));
@@ -638,7 +638,9 @@ function renderRecent(){
   }
   let rows=[...artists.map(r=>({...r,_t:'artist'})),...albums.map(r=>({...r,_t:'album'}))].sort((a,b)=>new Date(b.added_date||0)-new Date(a.added_date||0));
   if(q){const lq=q.toLowerCase();rows=rows.filter(r=>(r.artist_name||r.album_name||'').toLowerCase().includes(lq));}
-  document.getElementById('countLbl').textContent=`${rows.length} items`;
+  const aCount=rows.filter(r=>r._t==='artist').length;
+  const alCount=rows.filter(r=>r._t==='album').length;
+  document.getElementById('countLbl').textContent=`${aCount} artists · ${alCount} albums`;
   const c=document.getElementById('content');
   if(!rows.length){c.innerHTML='<div class="state"><span class="icon">🔍</span>No results</div>';return;}
   c.innerHTML=view==='grid'?`<div class="grid">${rows.map(r=>cardH(r,r._t)).join('')}</div>`:`<div class="list">${rows.map((r,i)=>listH(r,r._t,i)).join('')}</div>`;
