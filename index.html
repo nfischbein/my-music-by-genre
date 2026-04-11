@@ -359,8 +359,7 @@ function render() {
 
   if (isGenreList) { renderGenreList(); return; }
   if (isDrill) { renderDrill(); return; }
-  if (tab==='recent') { renderRecent(); return; }
-  renderCards(tab==='artists'?artists:albums, tab==='artists'?'artist':'album');
+  if (tab==='recent') { renderRecent(); return; }  renderCards(tab==='artists'?artists:albums, tab==='artists'?'artist':'album');
 }
 
 const fmtD = s => { try{return s?new Date(s).toLocaleDateString('en-US',{month:'short',year:'numeric'}):''}catch{return '';} };
@@ -409,7 +408,7 @@ function buildExpandInner(artist, listMode=false) {
     const lbl = `<div class="aex-section-lbl">${artistAlbums.length} saved album${artistAlbums.length!==1?'s':''}<button class="aex-close" style="margin-left:auto" onclick="closeExpand(event,'${safeName}')">×</button></div>`;
     const rows = artistAlbums.map(a => {
       const albImg = a.album_image_url||'';
-      const albUrl = a.album_url||'#';
+      const albUrl = spotifyAppUrl(a.album_url||'#');
       const year = a.release_date ? a.release_date.slice(0,4) : '';
       const thumb2 = albImg
         ? `<img class="aex-album-art" src="${albImg}" alt="" loading="lazy" onerror="this.style.display='none';this.nextSibling.style.display='flex'"><div class="aex-album-art-ph" style="display:none">💿</div>`
@@ -447,6 +446,13 @@ function toggleArtistExpand(artistName) {
   if (tab==='artists') renderCards(artists,'artist');
   else if (tab==='genres' && drill) renderDrill();
   else if (tab==='recent') renderRecent();
+  // Scroll expanded item into view after render
+  if (expandedArtist) {
+    requestAnimationFrame(()=>{
+      const el = document.querySelector('.artist-expand, .litem-expand');
+      if (el) el.scrollIntoView({behavior:'smooth', block:'nearest'});
+    });
+  }
 }
 
 function closeExpand(e, artistName) {
@@ -458,12 +464,21 @@ function closeExpand(e, artistName) {
   else if (tab==='recent') renderRecent();
 }
 
+// Convert Spotify web URL to native app URI so albums open in the Spotify app
+function spotifyAppUrl(webUrl) {
+  if (!webUrl || webUrl === '#') return webUrl;
+  const m = webUrl.match(/open\.spotify\.com\/(album|track|artist|playlist)\/([a-zA-Z0-9]+)/);
+  if (m) return `spotify:${m[1]}:${m[2]}`;
+  return webUrl;
+}
+
 function cardH(r, type) {
   const isA = type==='artist';
   const name = isA?(r.artist_name||''):(r.album_name||r.track_name||'');
   const sub2 = isA?'':(r.primary_artist_name||'');
   const img = isA?r.artist_image_url:(r.album_image_url||r.image_url);
-  const url = isA?r.artist_url:(r.album_url||r.track_url||'#');
+  const rawUrl = isA?r.artist_url:(r.album_url||r.track_url||'#');
+  const url = isA?rawUrl:spotifyAppUrl(rawUrl);
   const tags = (r.final_genres||'').split(',').map(g=>g.trim()).filter(Boolean).slice(0,2).map(g=>`<span class="gtag">${g}</span>`).join('');
   const date = type==='played'?fmtDT(r.played_at):fmtD(r.added_date);
   const em = isA?'🎤':'💿';
@@ -475,7 +490,7 @@ function cardH(r, type) {
     const borderStyle = isOpen ? 'border-color:var(--green)' : '';
     return `<div class="card" onclick="toggleArtistExpand('${safeName}')" style="cursor:pointer;${borderStyle}">${imgEl}<div class="card-body"><div class="card-name">${name}</div><div class="card-genres">${tags}</div>${date?`<div class="card-date">${date}</div>`:''}</div></div>`;
   }
-  return `<a class="card" href="${url||'#'}" target="_blank" rel="noopener">${imgEl}<div class="card-body"><div class="card-name">${name}</div>${sub2?`<div class="card-sub">${sub2}</div>`:''}<div class="card-genres">${tags}</div>${date?`<div class="card-date">${date}</div>`:''}</div></a>`;
+  return `<a class="card" href="${url||'#'}">${imgEl}<div class="card-body"><div class="card-name">${name}</div>${sub2?`<div class="card-sub" onclick="event.preventDefault();event.stopPropagation();toggleArtistExpand('${sub2.replace(/'/g,"\\'")}');" style="cursor:pointer;color:var(--green)">${sub2}</div>`:''}<div class="card-genres">${tags}</div>${date?`<div class="card-date">${date}</div>`:''}</div></a>`;
 }
 
 function listH(r, type, idx) {
@@ -483,7 +498,8 @@ function listH(r, type, idx) {
   const name = isA?(r.artist_name||''):(r.album_name||r.track_name||'');
   const sub2 = isA?(r.final_genres||'').split(',')[0]?.trim()||'':(r.primary_artist_name||'');
   const img = isA?r.artist_image_url:(r.album_image_url||r.image_url);
-  const url = isA?r.artist_url:(r.album_url||r.track_url||'#');
+  const rawUrl = isA?r.artist_url:(r.album_url||r.track_url||'#');
+  const url = isA?rawUrl:spotifyAppUrl(rawUrl);
   const date = type==='played'?fmtDT(r.played_at):fmtD(r.added_date);
   const em = isA?'🎤':'💿';
   const th = img?`<div class="lthumb"><img src="${img}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='${em}'"></div>`:`<div class="lthumb">${em}</div>`;
@@ -500,7 +516,7 @@ function listH(r, type, idx) {
       ${expandHTML}
     </div>`;
   }
-  return `<a class="litem" href="${url||'#'}" target="_blank" rel="noopener">${num}${th}<div class="linfo"><div class="lname">${name}</div>${sub2?`<div class="lsub">${sub2}</div>`:''}</div>${date?`<div class="ldate">${date}</div>`:''}</a>`;
+  return `<a class="litem" href="${url||'#'}">${num}${th}<div class="linfo"><div class="lname">${name}</div>${sub2?`<div class="lsub" onclick="event.preventDefault();event.stopPropagation();toggleArtistExpand('${sub2.replace(/'/g,"\\'")}');" style="cursor:pointer;color:var(--green)">${sub2}</div>`:''}</div>${date?`<div class="ldate">${date}</div>`:''}</a>`;
 }
 
 function renderCards(data, type) {
@@ -700,7 +716,7 @@ function renderRecent(){
         :`<div class="lthumb">💿</div>`;
       const date=fmtDT(a.played_at);
       const trackLbl=`${a.track_count} track${a.track_count!==1?'s':''}`;
-      return `<a class="litem" href="${a.album_url}" target="_blank" rel="noopener">
+      return `<a class="litem" href="${spotifyAppUrl(a.album_url)}" target="_blank" rel="noopener">
         <div class="lnum">${i+1}</div>
         ${th}
         <div class="linfo">
@@ -715,12 +731,14 @@ function renderRecent(){
   }
   let rows;
   if (addedSub==='artists') {
-    rows = [...artists.map(r=>({...r,_t:'artist'}))].sort((a,b)=>new Date(b.added_date||0)-new Date(a.added_date||0));
+    rows = [...artists.map(r=>({...r,_t:'artist'}))];
     if(q){const lq=q.toLowerCase();rows=rows.filter(r=>(r.artist_name||'').toLowerCase().includes(lq));}
+    rows.sort((a,b)=>sort==='name'?(a.artist_name||'').localeCompare(b.artist_name||''):sort==='popular'?(parseInt(b.popularity)||0)-(parseInt(a.popularity)||0):new Date(b.added_date||0)-new Date(a.added_date||0));
     document.getElementById('countLbl').textContent=`${rows.length} artists`;
   } else {
-    rows = [...albums.map(r=>({...r,_t:'album'}))].sort((a,b)=>new Date(b.added_date||0)-new Date(a.added_date||0));
-    if(q){const lq=q.toLowerCase();rows=rows.filter(r=>(r.album_name||'').toLowerCase().includes(lq));}
+    rows = [...albums.map(r=>({...r,_t:'album'}))];
+    if(q){const lq=q.toLowerCase();rows=rows.filter(r=>(r.album_name||'').toLowerCase().includes(lq)||(r.primary_artist_name||'').toLowerCase().includes(lq));}
+    rows.sort((a,b)=>sort==='name'?(a.album_name||'').localeCompare(b.album_name||''):new Date(b.added_date||0)-new Date(a.added_date||0));
     document.getElementById('countLbl').textContent=`${rows.length} albums`;
   }
   const c=document.getElementById('content');
@@ -731,8 +749,9 @@ function renderRecent(){
 function switchTab(t){
   tab=t;drill=null;genre='All';q='';expandedArtist=null;addedSub='artists';playedSub='albums';
   document.getElementById('searchInput').value='';
-  document.getElementById('srtP').style.display = t==='artists' ? 'inline-block' : 'none';
-  if (sort==='popular' && t!=='artists') { sort='recent'; document.getElementById('srtR').classList.add('active'); document.getElementById('srtP').classList.remove('active'); }
+  const showPop = t==='artists' || (t==='recent' && sub==='added' && addedSub==='artists');
+  document.getElementById('srtP').style.display = showPop ? 'inline-block' : 'none';
+  if (sort==='popular' && !showPop) { sort='recent'; document.getElementById('srtR').classList.add('active'); document.getElementById('srtP').classList.remove('active'); }
   render();
 }
 function switchSub(s){
