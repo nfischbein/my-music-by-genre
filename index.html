@@ -267,7 +267,52 @@ a:visited { color: inherit; }
 <script>
 const CFG_KEY = 'mmg_cfg_v3';
 const DATA_KEY = 'mmg_data_v3';
+const HISTORY_KEY = 'mmg_history_v1';
 const TTL = 3600000;
+const MAX_HISTORY = 500;
+
+// ── App-tracked play history ──────────────────────────────────────────────
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]'); } catch { return []; }
+}
+
+function trackPlay(type, item) {
+  // type: 'album' or 'artist'
+  const history = loadHistory();
+  const entry = {
+    type,
+    played_at: new Date().toISOString(),
+    album_name: item.album_name||'',
+    primary_artist_name: item.primary_artist_name||item.artist_name||'',
+    album_url: item.album_url||'',
+    artist_url: item.artist_url||'',
+    image_url: item.album_image_url||item.image_url||item.artist_image_url||'',
+  };
+  history.unshift(entry);
+  // Keep last MAX_HISTORY entries
+  if (history.length > MAX_HISTORY) history.splice(MAX_HISTORY);
+  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); } catch {}
+}
+
+function mergePlayHistory(spotifyPlayed) {
+  const appHistory = loadHistory();
+  // Convert app history album entries to same shape as spotify played
+  const appAsPlayed = appHistory.map(e => ({
+    played_at: e.played_at,
+    track_name: '',
+    track_url: e.album_url,
+    primary_artist_name: e.primary_artist_name,
+    artist_url: e.artist_url,
+    album_name: e.album_name,
+    album_url: e.album_url,
+    image_url: e.image_url,
+    _source: 'app',
+  }));
+  // Merge and sort by played_at descending
+  const merged = [...appAsPlayed, ...spotifyPlayed.map(r=>({...r,_source:'spotify'}))];
+  merged.sort((a,b)=>new Date(b.played_at||0)-new Date(a.played_at||0));
+  return merged;
+}
 
 let cfg = JSON.parse(localStorage.getItem(CFG_KEY) || '{}');
 if (!cfg.sheetId) {
@@ -413,7 +458,7 @@ function buildExpandInner(artist, listMode=false) {
       const thumb2 = albImg
         ? `<img class="aex-album-art" src="${albImg}" alt="" loading="lazy" onerror="this.style.display='none';this.nextSibling.style.display='flex'"><div class="aex-album-art-ph" style="display:none">💿</div>`
         : `<div class="aex-album-art-ph">💿</div>`;
-      return `<a class="aex-album" href="${albUrl}" target="_blank" rel="noopener">
+      return `<a class="aex-album" href="${albUrl}" target="_blank" rel="noopener" onclick="openSpotify(event,'album',{album_name:'${(a.album_name||'').replace(/'/g,"\\'")}',primary_artist_name:'${(artist.artist_name||'').replace(/'/g,"\\'")}',album_url:'${a.album_url||''}',artist_url:'${artist.artist_url||''}',image_url:'${albImg}'})">
         ${thumb2}
         <div class="aex-album-info">
           <div class="aex-album-name">${a.album_name||''}</div>
@@ -512,6 +557,12 @@ function spotifyAppUrl(webUrl) {
   return webUrl;
 }
 
+// Open a Spotify link and track it in app history
+function openSpotify(e, type, item) {
+  trackPlay(type, item);
+  // navigation happens via the anchor href naturally
+}
+
 function cardH(r, type) {
   const isA = type==='artist';
   const name = isA?(r.artist_name||''):(r.album_name||r.track_name||'');
@@ -524,6 +575,7 @@ function cardH(r, type) {
   const em = isA?'🎤':'💿';
   const imgEl = img?`<img class="card-img" src="${img}" alt="" loading="lazy" onerror="this.style.display='none';this.nextSibling.style.display='flex'"><div class="card-ph" style="display:none">${em}</div>`:`<div class="card-ph">${em}</div>`;
 
+  const trackData = !isA ? `onclick="openSpotify(event,'album',{album_name:'${(r.album_name||'').replace(/'/g,"\\'")}',primary_artist_name:'${(r.primary_artist_name||'').replace(/'/g,"\\'")}',album_url:'${(r.album_url||'')}',artist_url:'${(r.artist_url||'')}',image_url:'${(r.album_image_url||r.image_url||'')}'})"` : '';
   if (isA) {
     const safeName = (r.artist_name||'').replace(/'/g,"\\'");
     const isOpen = expandedArtist === r.artist_name;
@@ -532,7 +584,7 @@ function cardH(r, type) {
       .map(g=>`<span class="gtag" onclick="event.stopPropagation();goToGenre('${g.replace(/'/g,"\\'")}');" style="cursor:pointer">${g}</span>`).join('');
     return `<div class="card" onclick="toggleArtistExpand('${safeName}')" style="cursor:pointer;${borderStyle}">${imgEl}<div class="card-body"><div class="card-name">${name}</div><div class="card-genres">${tappableTags}</div>${date?`<div class="card-date">${date}</div>`:''}</div></div>`;
   }
-  return `<a class="card" href="${url||'#'}">${imgEl}<div class="card-body"><div class="card-name">${name}</div>${sub2?`<div class="card-sub" onclick="event.preventDefault();event.stopPropagation();toggleArtistExpand('${sub2.replace(/'/g,"\\'")}','${(r.artist_url||'').replace(/'/g,"\\'")}');" style="cursor:pointer;color:var(--green)">${sub2}</div>`:''}<div class="card-genres">${tags}</div>${date?`<div class="card-date">${date}</div>`:''}</div></a>`;
+  return `<a class="card" href="${url||'#'}" ${trackData}>${imgEl}<div class="card-body"><div class="card-name">${name}</div>${sub2?`<div class="card-sub" onclick="event.preventDefault();event.stopPropagation();toggleArtistExpand('${sub2.replace(/'/g,"\\'")}','${(r.artist_url||'').replace(/'/g,"\\'")}');" style="cursor:pointer;color:var(--green)">${sub2}</div>`:''}<div class="card-genres">${tags}</div>${date?`<div class="card-date">${date}</div>`:''}</div></a>`;
 }
 
 function listH(r, type, idx) {
@@ -547,6 +599,7 @@ function listH(r, type, idx) {
   const th = img?`<div class="lthumb"><img src="${img}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='${em}'"></div>`:`<div class="lthumb">${em}</div>`;
   const num = idx!=null?`<div class="lnum">${idx+1}</div>`:'';
 
+  const trackDataL = !isA ? `onclick="openSpotify(event,'album',{album_name:'${(r.album_name||'').replace(/'/g,"\\'")}',primary_artist_name:'${(r.primary_artist_name||'').replace(/'/g,"\\'")}',album_url:'${(r.album_url||'')}',artist_url:'${(r.artist_url||'')}',image_url:'${(r.album_image_url||r.image_url||'')}'})"` : '';
   if (isA) {
     const safeName = (r.artist_name||'').replace(/'/g,"\\'");
     const safeGenre = (sub2||'').replace(/'/g,"\\'");
@@ -560,7 +613,7 @@ function listH(r, type, idx) {
       ${expandHTML}
     </div>`;
   }
-  return `<a class="litem" href="${url||'#'}">${num}${th}<div class="linfo"><div class="lname">${name}</div>${sub2?`<div class="lsub" onclick="event.preventDefault();event.stopPropagation();toggleArtistExpand('${sub2.replace(/'/g,"\\'")}','${(r.artist_url||'').replace(/'/g,"\\'")}');" style="cursor:pointer;color:var(--green)">${sub2}</div>`:''}</div>${date?`<div class="ldate">${date}</div>`:''}</a>`;
+  return `<a class="litem" href="${url||'#'}" ${trackDataL}>${num}${th}<div class="linfo"><div class="lname">${name}</div>${sub2?`<div class="lsub" onclick="event.preventDefault();event.stopPropagation();toggleArtistExpand('${sub2.replace(/'/g,"\\'")}','${(r.artist_url||'').replace(/'/g,"\\'")}');" style="cursor:pointer;color:var(--green)">${sub2}</div>`:''}</div>${date?`<div class="ldate">${date}</div>`:''}</a>`;
 }
 
 function renderCards(data, type) {
@@ -670,10 +723,12 @@ function renderRecent(){
     const c=document.getElementById('content');
     if(!played.length){c.innerHTML='<div class="state"><span class="icon">🎵</span>No recently played data yet</div>';return;}
 
+    // Merge app-tracked history with Spotify recently played
+    const allPlayed = mergePlayHistory(played);
+
     if(playedSub==='artists'){
-      // Dedupe by artist, preserve play order
       const artistMap={}, artistOrder=[];
-      played.forEach(r=>{
+      allPlayed.forEach(r=>{
         const key=r.artist_url||r.primary_artist_name||'';
         if(!key) return;
         if(!artistMap[key]){
@@ -731,7 +786,7 @@ function renderRecent(){
     // Albums view (default)
     const albumMap={};
     const albumOrder=[];
-    played.forEach(r=>{
+    allPlayed.forEach(r=>{
       const key=(r.album_url||r.track_url||'')+(r.primary_artist_name||'');
       if(!key) return;
       if(!albumMap[key]){
