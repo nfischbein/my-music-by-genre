@@ -171,13 +171,29 @@ a:visited { color: inherit; }
 .btn-g { width: 100%; margin-top: 16px; padding: 14px; border-radius: 12px; border: none; background: var(--green); color: #000; font-size: 16px; font-weight: 600; cursor: pointer; touch-action: manipulation; -webkit-appearance: none; }
 .btn-ghost { width: 100%; margin-top: 10px; padding: 12px; border-radius: 12px; border: 0.5px solid var(--border); background: transparent; color: var(--text2); font-size: 15px; cursor: pointer; touch-action: manipulation; }
 
-.state { text-align: center; padding: 60px 20px; color: var(--text2); font-size: 15px; }
+.pin-screen { position:fixed; inset:0; background:var(--bg); z-index:500; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px; }
+.pin-logo { font-size:28px; font-weight:700; color:var(--text); margin-bottom:6px; letter-spacing:-0.5px; }
+.pin-logo span { color:var(--green); }
+.pin-sub { font-size:14px; color:var(--text2); margin-bottom:40px; }
+.pin-input { width:160px; background:var(--bg3); border:0.5px solid var(--border); border-radius:12px; color:var(--text); font-size:28px; font-weight:600; text-align:center; padding:14px 12px; outline:none; letter-spacing:8px; -webkit-appearance:none; }
+.pin-input:focus { border-color:var(--green); }
+.pin-btn { margin-top:16px; width:160px; padding:14px; border-radius:12px; border:none; background:var(--green); color:#000; font-size:16px; font-weight:600; cursor:pointer; touch-action:manipulation; }
+.pin-error { margin-top:12px; font-size:13px; color:#e05555; display:none; }
 .state .icon { font-size: 36px; margin-bottom: 12px; display: block; }
 .spin { width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: sp 0.7s linear infinite; margin: 0 auto 12px; }
 @keyframes sp { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
+
+<div id="pinScreen" style="display:none" class="pin-screen">
+  <div class="pin-logo">My Music <span>by Genre</span></div>
+  <div class="pin-sub">Enter your PIN to continue</div>
+  <input class="pin-input" id="pinInput" type="password" inputmode="numeric" maxlength="6" placeholder="••••"
+    onkeydown="if(event.key==='Enter')submitPin()">
+  <button class="pin-btn" onclick="submitPin()">Unlock</button>
+  <div class="pin-error" id="pinError">Incorrect PIN</div>
+</div>
 
 <div class="header">
   <div class="header-top">
@@ -951,8 +967,57 @@ function saveConfig(){
   load(true);
 }
 
+// ── PIN protection ────────────────────────────────────────────────────────
+const PIN_KEY = 'mmg_pin_v1';
+// SHA-256 hash of PIN "7482" — the actual PIN is never stored in code or localStorage
+const PIN_HASH = '91bca017d06790f59b5d54a86a592298c5ad8e88e0b7fc98cae7bdee361473ba';
+
+async function hashPin(pin) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pin));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function isPinUnlocked() {
+  return localStorage.getItem(PIN_KEY) === PIN_HASH;
+}
+
+async function checkPin() {
+  if (isPinUnlocked()) { initApp(); return; }
+  showPinScreen();
+}
+
+function showPinScreen() {
+  document.getElementById('pinScreen').style.display='flex';
+  document.getElementById('pinInput').focus();
+}
+
+function hidePinScreen() {
+  document.getElementById('pinScreen').style.display='none';
+}
+
+async function submitPin() {
+  const val = document.getElementById('pinInput').value.trim();
+  if (!val) return;
+  const hash = await hashPin(val);
+  if (hash === PIN_HASH) {
+    localStorage.setItem(PIN_KEY, PIN_HASH);
+    hidePinScreen();
+    initApp();
+  } else {
+    document.getElementById('pinError').style.display='block';
+    document.getElementById('pinInput').value='';
+    document.getElementById('pinInput').focus();
+    setTimeout(()=>document.getElementById('pinError').style.display='none', 2000);
+  }
+}
+
+function initApp() {
+  hideConfig();
+  load();
+}
+
 hideConfig();
-load();
+checkPin();
 </script>
 </body>
 </html>
