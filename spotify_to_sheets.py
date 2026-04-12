@@ -979,7 +979,7 @@ def consolidate_genres(genres_str):
         parent = GENRE_BUCKET_MAP.get(g.lower())
     if not parent:
         parent = EXTRA_GENRE_MAP.get(g.lower())
-        if parent and parent.lower() not in seen:
+    if parent and parent.lower() not in seen:
             seen.add(parent.lower())
             parents_to_add.append(parent)
 
