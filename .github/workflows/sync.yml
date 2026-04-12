@@ -50,6 +50,7 @@ jobs:
 
       - name: Write Google service account credentials
         env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
           GOOGLE_SERVICE_ACCOUNT_JSON_CONTENTS: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
         run: |
           echo "$GOOGLE_SERVICE_ACCOUNT_JSON_CONTENTS" > service-account.json
