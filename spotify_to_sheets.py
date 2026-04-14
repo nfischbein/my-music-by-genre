@@ -976,7 +976,7 @@ def consolidate_genres(genres_str):
 
     for g in original:
         # Check GENRE_PARENT_MAP first
-        parent = GENRE_BUCKET_MAP.get(g.lower())
+        parent = GENRE_BUCKET_LOOKUP.get(g.lower())
     if not parent:
         parent = EXTRA_GENRE_MAP.get(g.lower())
     if parent and parent.lower() not in seen:
