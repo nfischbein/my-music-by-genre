@@ -308,14 +308,15 @@ function render() {
 
 const stripArticle = name => (name || '').replace(/^(the|a|an)\s+/i, '').trim();
 const artistSortName = (name, type) => {
-  if (type === 'artist') {
+  // MusicBrainz returns "Person" for solo artists, "Group" for bands
+  if (type === 'Person') {
     const stripped = stripArticle(name);
     const parts = stripped.split(/\s+/);
     return parts.length > 1 ? parts[parts.length - 1] + ' ' + parts.slice(0, -1).join(' ') : stripped;
   }
   return stripArticle(name);
 };
-const albumSortKey = r => artistSortName(r.primary_artist_name || '', r.primary_artist_type || r.artist_type || '') + '\x00' + (r.album_name || '');
+const albumSortKey = r => artistSortName(r.primary_artist_name || '', r.artist_type || '') + '\x00' + (r.album_name || '');
 
 const fmtD = s => { try{return s?new Date(s).toLocaleDateString('en-US',{month:'short',year:'numeric'}):''}catch{return '';} };
 const fmtDT = s => { try{return s?new Date(s).toLocaleDateString('en-US',{month:'short',day:'numeric'}):''}catch{return '';} };
@@ -372,7 +373,7 @@ function renderCards(data, type) {
     const order = [];
     rows.forEach(r => {
       const artist = r.primary_artist_name || 'Unknown Artist';
-      if (!groups[artist]) { groups[artist] = {rows:[], type: r.primary_artist_type||r.artist_type||''}; order.push(artist); }
+      if (!groups[artist]) { groups[artist] = {rows:[], type: r.artist_type||''}; order.push(artist); }
       groups[artist].rows.push(r);
     });
     order.sort((a, b) => artistSortName(a, groups[a].type).localeCompare(artistSortName(b, groups[b].type)));
