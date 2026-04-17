@@ -182,10 +182,10 @@ a:visited { color: inherit; }
   <button class="sort-btn" id="srtN" onclick="setSort('name')">A–Z</button>
   <button class="sort-btn" id="srtP" onclick="setSort('popular')" style="display:none">Popular</button>
   <div class="view-toggle">
-    <button class="view-btn active" id="vGrid" onclick="setView('grid')">
+    <button class="view-btn" id="vGrid" onclick="setView('grid')">
       <svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>
     </button>
-    <button class="view-btn" id="vList" onclick="setView('list')">
+    <button class="view-btn active" id="vList" onclick="setView('list')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
     </button>
   </div>
@@ -224,7 +224,7 @@ if (!cfg.sheetId) {
 }
 
 let artists = [], albums = [], played = [];
-let tab = 'recent', sub = 'played', sort = 'recent', view = 'grid';
+let tab = 'recent', sub = 'played', sort = 'recent', view = 'list';
 let genre = 'All', drill = null, drillSub = 'artists', q = '';
 let gIndex = {}, gModalAll = [];
 
