@@ -504,6 +504,8 @@ function saveConfig(){
 }
 
 hideConfig();
+document.getElementById('vGrid').classList.toggle('active', view==='grid');
+document.getElementById('vList').classList.toggle('active', view==='list');
 load();
 </script>
 </body>
