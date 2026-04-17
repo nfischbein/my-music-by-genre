@@ -120,6 +120,48 @@ a:visited { color: inherit; }
 .mgenre.sel .mgname { color: var(--green); font-weight: 600; }
 .mgenre.sel .mgcount { color: var(--green); }
 
+/* ── Artist inline expand ────────────────────────────────── */
+/* Grid: expand panel spans full width below the row of 2 cards */
+.artist-card-wrap { display: contents; }
+.artist-expand {
+  grid-column: 1 / -1;
+  background: var(--bg3);
+  border: 0.5px solid var(--green);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-top: -4px;
+}
+.aex-header { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 0.5px solid var(--border); }
+.aex-img { width: 44px; height: 44px; border-radius: 22px; object-fit: cover; background: var(--bg2); flex-shrink: 0; display: block; }
+.aex-img-ph { width: 44px; height: 44px; border-radius: 22px; background: var(--bg2); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+.aex-info { flex: 1; min-width: 0; }
+.aex-name { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aex-genres { font-size: 11px; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; }
+.aex-spotify { display: flex; align-items: center; gap: 4px; padding: 5px 10px; border-radius: 14px; background: var(--green); color: #000; font-size: 11px; font-weight: 600; text-decoration: none; flex-shrink: 0; white-space: nowrap; }
+.aex-spotify svg { width: 10px; height: 10px; }
+.aex-close { width: 28px; height: 28px; border-radius: 14px; background: var(--bg2); border: 0.5px solid var(--border); color: var(--text2); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; touch-action: manipulation; }
+.aex-section-lbl { font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.7px; padding: 10px 14px 6px; display: flex; align-items: center; }
+.aex-album { display: flex; align-items: center; gap: 10px; padding: 8px 14px; text-decoration: none; border-top: 0.5px solid var(--border); }
+.aex-album:active .aex-album-name { color: var(--green); }
+.aex-album-art { width: 40px; height: 40px; border-radius: 5px; object-fit: cover; background: var(--bg2); flex-shrink: 0; display: block; }
+.aex-album-art-ph { width: 40px; height: 40px; border-radius: 5px; background: var(--bg2); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+.aex-album-info { flex: 1; min-width: 0; }
+.aex-album-name { font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aex-album-year { font-size: 11px; color: var(--text2); margin-top: 1px; }
+.aex-album-arrow { font-size: 16px; color: var(--text3); flex-shrink: 0; }
+.aex-empty { padding: 18px 14px 20px; text-align: center; }
+.aex-empty-msg { font-size: 13px; color: var(--text2); margin-bottom: 14px; }
+.aex-empty-btn { display: inline-flex; align-items: center; gap: 5px; padding: 9px 18px; border-radius: 18px; background: var(--green); color: #000; font-size: 13px; font-weight: 600; text-decoration: none; }
+.aex-empty-btn svg { width: 12px; height: 12px; }
+/* List view: expand sits as a full-width block below the row */
+.litem-artist { cursor: pointer; }
+.litem-artist:active .lname { color: var(--green); }
+.litem-expand { background: var(--bg3); border-left: 2px solid var(--green); margin: 0 0 0 60px; border-radius: 0 0 8px 8px; overflow: hidden; }
+.litem-expand .aex-header { padding: 10px 12px; }
+.litem-expand .aex-album { padding: 7px 12px; }
+.litem-expand .aex-section-lbl { padding: 8px 12px 4px; }
+.litem-expand .aex-empty { padding: 14px 12px 16px; }
+
 .cfg { background: var(--bg2); border-radius: 20px 20px 0 0; border: 0.5px solid var(--border); padding: 24px 20px calc(24px + var(--safe-bottom)); width: 100%; }
 .cfg h2 { font-size: 18px; margin-bottom: 8px; }
 .cfg p { font-size: 13px; color: var(--text2); margin-bottom: 20px; line-height: 1.6; }
@@ -129,13 +171,29 @@ a:visited { color: inherit; }
 .btn-g { width: 100%; margin-top: 16px; padding: 14px; border-radius: 12px; border: none; background: var(--green); color: #000; font-size: 16px; font-weight: 600; cursor: pointer; touch-action: manipulation; -webkit-appearance: none; }
 .btn-ghost { width: 100%; margin-top: 10px; padding: 12px; border-radius: 12px; border: 0.5px solid var(--border); background: transparent; color: var(--text2); font-size: 15px; cursor: pointer; touch-action: manipulation; }
 
-.state { text-align: center; padding: 60px 20px; color: var(--text2); font-size: 15px; }
+.pin-screen { position:fixed; inset:0; background:var(--bg); z-index:500; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px; }
+.pin-logo { font-size:28px; font-weight:700; color:var(--text); margin-bottom:6px; letter-spacing:-0.5px; }
+.pin-logo span { color:var(--green); }
+.pin-sub { font-size:14px; color:var(--text2); margin-bottom:40px; }
+.pin-input { width:160px; background:var(--bg3); border:0.5px solid var(--border); border-radius:12px; color:var(--text); font-size:28px; font-weight:600; text-align:center; padding:14px 12px; outline:none; letter-spacing:8px; -webkit-appearance:none; }
+.pin-input:focus { border-color:var(--green); }
+.pin-btn { margin-top:16px; width:160px; padding:14px; border-radius:12px; border:none; background:var(--green); color:#000; font-size:16px; font-weight:600; cursor:pointer; touch-action:manipulation; }
+.pin-error { margin-top:12px; font-size:13px; color:#e05555; display:none; }
 .state .icon { font-size: 36px; margin-bottom: 12px; display: block; }
 .spin { width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: sp 0.7s linear infinite; margin: 0 auto 12px; }
 @keyframes sp { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
+
+<div id="pinScreen" style="display:none" class="pin-screen">
+  <div class="pin-logo">My Music <span>by Genre</span></div>
+  <div class="pin-sub">Enter your PIN to continue</div>
+  <input class="pin-input" id="pinInput" type="password" inputmode="numeric" maxlength="6" placeholder="••••"
+    onkeydown="if(event.key==='Enter')submitPin()">
+  <button class="pin-btn" onclick="submitPin()">Unlock</button>
+  <div class="pin-error" id="pinError">Incorrect PIN</div>
+</div>
 
 <div class="header">
   <div class="header-top">
@@ -149,16 +207,26 @@ a:visited { color: inherit; }
     <input class="search-input" id="searchInput" type="search" placeholder="Search..." autocomplete="off">
   </div>
   <div class="top-nav">
-    <button class="nav-btn" onclick="switchTab('artists')">Artists</button>
+    <button class="nav-btn active" onclick="switchTab('artists')">Artists</button>
     <button class="nav-btn" onclick="switchTab('albums')">Albums</button>
     <button class="nav-btn" onclick="switchTab('genres')">Genres</button>
-    <button class="nav-btn active" onclick="switchTab('recent')">Recent</button>
+    <button class="nav-btn" onclick="switchTab('recent')">Recent</button>
   </div>
 </div>
 
 <div class="sub-nav" id="subNav">
-  <button class="sub-btn" onclick="switchSub('added')" id="sub-added">Recently Added</button>
-  <button class="sub-btn active" onclick="switchSub('played')" id="sub-played">Recently Played</button>
+  <button class="sub-btn active" onclick="switchSub('added')" id="sub-added">Recently Added</button>
+  <button class="sub-btn" onclick="switchSub('played')" id="sub-played">Recently Played</button>
+</div>
+
+<div class="sub-nav" id="subNav2">
+  <button class="sub-btn active" onclick="switchAddedSub('artists')" id="sub-added-artists">Artists</button>
+  <button class="sub-btn" onclick="switchAddedSub('albums')" id="sub-added-albums">Albums</button>
+</div>
+
+<div class="sub-nav" id="subNav3">
+  <button class="sub-btn active" onclick="switchPlayedSub('albums')" id="sub-played-albums">Albums</button>
+  <button class="sub-btn" onclick="switchPlayedSub('artists')" id="sub-played-artists">Artists</button>
 </div>
 
 <div class="drill-bar" id="drillBar">
@@ -207,6 +275,8 @@ a:visited { color: inherit; }
     <p>Enter your Google Sheet ID — the string between /d/ and /edit in the sheet URL. Make sure the sheet is shared as "Anyone with the link → Viewer".</p>
     <label>Sheet ID</label>
     <input id="sheetId" type="text" placeholder="your-sheet-id" autocomplete="off" autocorrect="off" spellcheck="false">
+    <label style="margin-top:16px;display:block">History URL <span style="color:var(--text3);font-size:11px">(optional — for cross-device play history)</span></label>
+    <input id="historyUrl" type="text" placeholder="https://script.google.com/macros/s/..." autocomplete="off" autocorrect="off" spellcheck="false">
     <button class="btn-g" onclick="saveConfig()">Connect</button>
     <button class="btn-ghost" onclick="hideConfig()">Cancel</button>
   </div>
@@ -215,7 +285,77 @@ a:visited { color: inherit; }
 <script>
 const CFG_KEY = 'mmg_cfg_v3';
 const DATA_KEY = 'mmg_data_v3';
+const HISTORY_KEY = 'mmg_history_v1';  // localStorage fallback
 const TTL = 3600000;
+const MAX_HISTORY = 500;
+
+// ── Play history (cross-device via Apps Script + localStorage fallback) ───
+function loadLocalHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]'); } catch { return []; }
+}
+
+function saveLocalHistory(history) {
+  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, MAX_HISTORY))); } catch {}
+}
+
+function trackPlay(type, item) {
+  if (type !== 'album') return; // only track album taps
+  const entry = {
+    type: 'album',
+    played_at: new Date().toISOString(),
+    album_name: item.album_name||'',
+    primary_artist_name: item.primary_artist_name||item.artist_name||'',
+    album_url: item.album_url||'',
+    artist_url: item.artist_url||'',
+    image_url: item.album_image_url||item.image_url||item.artist_image_url||'',
+  };
+
+  // Write to localStorage immediately (works offline, instant)
+  const local = loadLocalHistory();
+  local.unshift(entry);
+  saveLocalHistory(local);
+
+  // Write to Apps Script in background if URL configured
+  if (cfg.historyUrl) {
+    fetch(cfg.historyUrl, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(entry),
+    }).catch(()=>{}); // silent fail — localStorage is the fallback
+  }
+}
+
+// Fetch remote history from Apps Script (async, called on load)
+async function fetchRemoteHistory() {
+  if (!cfg.historyUrl) return [];
+  try {
+    const r = await fetch(cfg.historyUrl + '?limit=300');
+    const data = await r.json();
+    if (data.status === 'ok' && Array.isArray(data.rows)) return data.rows;
+  } catch {}
+  return [];
+}
+
+let remoteHistory = []; // populated async on load
+
+function mergePlayHistory(spotifyPlayed) {
+  // Merge: remote (Apps Script) + local (localStorage) + Spotify
+  const local = loadLocalHistory();
+  const all = [...remoteHistory, ...local, ...spotifyPlayed.map(r=>({...r,_src:'spotify'}))];
+  // Dedupe by album_url + date (day precision)
+  const seen = new Set();
+  const deduped = [];
+  for (const r of all) {
+    const albumKey = (r.album_url||r.track_url||r.album_name||'').split('?')[0];
+    const day = (r.played_at||'').slice(0,10);
+    const key = albumKey + '|' + day;
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(r);
+  }
+  deduped.sort((a,b)=>new Date(b.played_at||0)-new Date(a.played_at||0));
+  return deduped;
+}
 
 let cfg = JSON.parse(localStorage.getItem(CFG_KEY) || '{}');
 if (!cfg.sheetId) {
@@ -224,7 +364,7 @@ if (!cfg.sheetId) {
 }
 
 let artists = [], albums = [], played = [];
-let tab = 'recent', sub = 'played', sort = 'recent', view = 'list';
+let tab = 'artists', sub = 'added', addedSub = 'artists', playedSub = 'albums', sort = 'recent', view = 'list';
 let genre = 'All', drill = null, drillSub = 'artists', q = '';
 let gIndex = {}, gModalAll = [];
 
@@ -266,14 +406,19 @@ const dedup = (rows, keyFn) => {
 async function load(force=false) {
   if (!cfg.sheetId){showConfig();return;}
   const cached = JSON.parse(localStorage.getItem(DATA_KEY)||'null');
+  // Fetch remote history in background regardless of cache
+  fetchRemoteHistory().then(rows=>{ remoteHistory=rows; });
   if (!force && cached && Date.now()-cached.ts<TTL) {
     artists=cached.artists; albums=cached.albums; played=cached.played||[];
     buildIdx(); render(); return;
   }
   document.getElementById('content').innerHTML='<div class="state"><div class="spin"></div>Loading your music...</div>';
   const [a,al,p] = await Promise.all([fetchSheet('By_Genre_Artists'),fetchSheet('By_Genre_Albums'),fetchSheet('Recently_Played')]);
-  artists = dedup(a, r=>r.artist_name||r.artist_url);
-  albums = dedup(al, r=>(r.album_name||'')+'||'+(r.primary_artist_name||''));
+  artists = dedup(a, r=>r.artist_url||r.artist_name);
+  albums = dedup(al, r=>{
+    const url=(r.album_url||'').trim().toLowerCase().replace(/\/$/,'');
+    return url || ((r.album_name||'').trim().toLowerCase()+'||'+(r.primary_artist_name||'').trim().toLowerCase());
+  });
   played = p;
   buildIdx();
   localStorage.setItem(DATA_KEY, JSON.stringify({ts:Date.now(),artists,albums,played}));
@@ -291,6 +436,8 @@ function render() {
   // nav
   document.querySelectorAll('.nav-btn').forEach((b,i)=>b.classList.toggle('active',['artists','albums','genres','recent'][i]===tab));
   document.getElementById('subNav').classList.toggle('visible', tab==='recent');
+  document.getElementById('subNav2').classList.toggle('visible', tab==='recent' && sub==='added');
+  document.getElementById('subNav3').classList.toggle('visible', tab==='recent' && sub==='played');
   const isDrill = tab==='genres' && drill;
   document.getElementById('drillBar').classList.toggle('visible', isDrill);
   const isGenreList = tab==='genres' && !drill;
@@ -302,21 +449,8 @@ function render() {
 
   if (isGenreList) { renderGenreList(); return; }
   if (isDrill) { renderDrill(); return; }
-  if (tab==='recent') { renderRecent(); return; }
-  renderCards(tab==='artists'?artists:albums, tab==='artists'?'artist':'album');
+  if (tab==='recent') { renderRecent(); return; }  renderCards(tab==='artists'?artists:albums, tab==='artists'?'artist':'album');
 }
-
-const stripArticle = name => (name || '').replace(/^(the|a|an)\s+/i, '').trim();
-const artistSortName = (name, type) => {
-  // MusicBrainz returns "Person" for solo artists, "Group" for bands
-  if (type === 'Person') {
-    const stripped = stripArticle(name);
-    const parts = stripped.split(/\s+/);
-    return parts.length > 1 ? parts[parts.length - 1] + ' ' + parts.slice(0, -1).join(' ') : stripped;
-  }
-  return stripArticle(name);
-};
-const albumSortKey = r => artistSortName(r.primary_artist_name || '', r.artist_type || '') + '\x00' + (r.album_name || '');
 
 const fmtD = s => { try{return s?new Date(s).toLocaleDateString('en-US',{month:'short',year:'numeric'}):''}catch{return '';} };
 const fmtDT = s => { try{return s?new Date(s).toLocaleDateString('en-US',{month:'short',day:'numeric'}):''}catch{return '';} };
@@ -326,39 +460,205 @@ function filtered(data, typeStr) {
   if (genre!=='All') rows=rows.filter(r=>(r.final_genres||'').split(',').map(g=>g.trim().toLowerCase()).includes(genre.toLowerCase()));
   if (q) { const lq=q.toLowerCase(); rows=rows.filter(r=>(r.artist_name||r.album_name||r.track_name||'').toLowerCase().includes(lq)||(r.final_genres||'').toLowerCase().includes(lq)); }
   return [...rows].sort((a,b)=>{
-    if (sort==='name') {
-      if (typeStr==='album') return albumSortKey(a).localeCompare(albumSortKey(b));
-      return stripArticle(a.artist_name||a.album_name||'').localeCompare(stripArticle(b.artist_name||b.album_name||''));
-    }
+    if (sort==='name') return artistSortKey(a.artist_name||a.album_name||'').localeCompare(artistSortKey(b.artist_name||b.album_name||''));
     if (sort==='popular') return (parseInt(b.popularity)||0)-(parseInt(a.popularity)||0);
     return new Date(b.added_date||0)-new Date(a.added_date||0);
   });
 }
 
+function spotifyIcon(size=11){return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424a.623.623 0 0 1-.857.207c-2.348-1.435-5.304-1.76-8.785-.964a.623.623 0 1 1-.277-1.215c3.809-.87 7.077-.496 9.712 1.115a.623.623 0 0 1 .207.857zm1.223-2.722a.78.78 0 0 1-1.072.257c-2.687-1.652-6.785-2.131-9.965-1.166a.78.78 0 0 1-.973-.519.78.78 0 0 1 .52-.972c3.632-1.102 8.147-.568 11.233 1.328a.78.78 0 0 1 .257 1.072zm.105-2.835C14.692 8.95 9.375 8.775 6.297 9.71a.937.937 0 1 1-.543-1.793c3.532-1.072 9.404-.865 13.115 1.338a.937.937 0 0 1-.955 1.612z"/></svg>`;}
+
+function toggleArtistExpandStub(artistName, stubArtist) {
+  // For recently played artists — uses stub if not in followed list
+  if (expandedArtist === artistName) {
+    expandedArtist = null;
+  } else {
+    expandedArtist = artistName;
+  }
+  if (tab==='recent') renderRecent();
+  else if (tab==='artists') renderCards(artists,'artist');
+  else if (tab==='genres' && drill) renderDrill();
+}
+
+function buildExpandInner(artist, listMode=false) {
+  // For non-followed artists from recently played, check stub map
+  if (!artist._notFollowing) {
+    const stub = window._playedArtistStubs && window._playedArtistStubs[artist.artist_name];
+    if (stub) artist = stub;
+  }
+  const isNotFollowing = artist._notFollowing === true;
+  const artistAlbums = isNotFollowing ? [] : albums
+    .filter(a => (a.primary_artist_name||'').toLowerCase() === (artist.artist_name||'').toLowerCase())
+    .sort((a,b) => (a.album_name||'').localeCompare(b.album_name||''));
+  const url = artist.artist_url || '#';
+  const safeName = (artist.artist_name||'').replace(/'/g,"\\'");
+
+  let body;
+  if (artistAlbums.length) {
+    const lbl = `<div class="aex-section-lbl">${artistAlbums.length} saved album${artistAlbums.length!==1?'s':''}<button class="aex-close" style="margin-left:auto" onclick="closeExpand(event,'${safeName}')">×</button></div>`;
+    const rows = artistAlbums.map(a => {
+      const albImg = a.album_image_url||'';
+      const albUrl = spotifyAppUrl(a.album_url||'#');
+      const year = a.release_date ? a.release_date.slice(0,4) : '';
+      const thumb2 = albImg
+        ? `<img class="aex-album-art" src="${albImg}" alt="" loading="lazy" onerror="this.style.display='none';this.nextSibling.style.display='flex'"><div class="aex-album-art-ph" style="display:none">💿</div>`
+        : `<div class="aex-album-art-ph">💿</div>`;
+      return `<a class="aex-album" href="${albUrl}" target="_blank" rel="noopener" onclick="openSpotify(event,'album',{album_name:'${(a.album_name||'').replace(/'/g,"\\'")}',primary_artist_name:'${(artist.artist_name||'').replace(/'/g,"\\'")}',album_url:'${a.album_url||''}',artist_url:'${artist.artist_url||''}',image_url:'${albImg}'})">
+        ${thumb2}
+        <div class="aex-album-info">
+          <div class="aex-album-name">${a.album_name||''}</div>
+          ${year ? `<div class="aex-album-year">${year}</div>` : ''}
+        </div>
+        <div class="aex-album-arrow">›</div>
+      </a>`;
+    }).join('');
+    body = lbl + rows;
+  } else {
+    const msg = isNotFollowing
+      ? `Not following this artist.`
+      : `No saved albums for this artist.`;
+    body = `<div class="aex-empty">
+      <div class="aex-empty-msg">${msg}</div>
+      ${url!=='#' ? `<a class="aex-empty-btn" href="${url}" target="_blank" rel="noopener">${spotifyIcon(12)} Open in Spotify</a>` : ''}
+    </div>`;
+  }
+  return body;
+}
+
+let expandedArtist = null; // tracks which artist is currently expanded
+
+function toggleArtistExpand(artistName, artistUrl='') {
+  const inList = artists.find(a=>(a.artist_name||'').toLowerCase()===artistName.toLowerCase());
+
+  // For unfollowed artists — show a small overlay panel instead of switching tabs
+  if (!inList) {
+    const url = artistUrl || '';
+    const existing = document.getElementById('unfollowedPanel');
+    if (existing && existing.dataset.artist === artistName) {
+      existing.remove(); return;
+    }
+    if (existing) existing.remove();
+    const panel = document.createElement('div');
+    panel.id = 'unfollowedPanel';
+    panel.dataset.artist = artistName;
+    panel.style.cssText = 'position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 80px);left:16px;right:16px;background:var(--bg3);border:0.5px solid var(--green);border-radius:12px;padding:14px 16px;z-index:200;display:flex;align-items:center;gap:12px;';
+    panel.innerHTML = `
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${artistName}</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px">Not in your followed artists</div>
+      </div>
+      ${url ? `<a href="${url}" style="display:flex;align-items:center;gap:5px;padding:7px 12px;border-radius:14px;background:var(--green);color:#000;font-size:12px;font-weight:600;text-decoration:none;flex-shrink:0">${spotifyIcon(10)} Spotify</a>` : ''}
+      <button onclick="document.getElementById('unfollowedPanel').remove()" style="background:var(--bg2);border:0.5px solid var(--border);color:var(--text2);width:28px;height:28px;border-radius:14px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">×</button>`;
+    document.body.appendChild(panel);
+    setTimeout(()=>{ if(document.getElementById('unfollowedPanel')) document.getElementById('unfollowedPanel').remove(); }, 5000);
+    return;
+  }
+
+  if (expandedArtist === artistName) {
+    expandedArtist = null;
+  } else {
+    expandedArtist = artistName;
+  }
+  // If on albums, recent, or genres-album-drill, switch to artists tab to show the expand
+  if (tab==='albums' || tab==='recent' || (tab==='genres' && drill && drillSub==='albums')) {
+    tab='artists';
+    drill=null;
+    document.querySelectorAll('.nav-btn').forEach((b,i)=>b.classList.toggle('active',['artists','albums','genres','recent'][i]==='artists'));
+    document.getElementById('drillBar').classList.remove('visible');
+    document.getElementById('srtP').style.display='inline-block';
+    renderCards(artists,'artist');
+  } else if (tab==='artists') renderCards(artists,'artist');
+  else if (tab==='genres' && drill) renderDrill();
+  else if (tab==='recent') renderRecent();
+  // Scroll expanded item into view after render
+  if (expandedArtist) {
+    requestAnimationFrame(()=>{
+      const el = document.querySelector('.artist-expand, .litem-expand');
+      if (el) el.scrollIntoView({behavior:'smooth', block:'center'});
+    });
+  }
+}
+
+function goToGenre(g) {
+  tab='genres';
+  document.querySelectorAll('.nav-btn').forEach((b,i)=>b.classList.toggle('active',['artists','albums','genres','recent'][i]==='genres'));
+  enterDrill(g);
+}
+
+function closeExpand(e, artistName) {
+  e.preventDefault();
+  e.stopPropagation();
+  expandedArtist = null;
+  if (tab==='artists') renderCards(artists,'artist');
+  else if (tab==='genres' && drill) renderDrill();
+  else if (tab==='recent') renderRecent();
+}
+
+// Convert Spotify web URL to native app URI so albums open in the Spotify app
+function spotifyAppUrl(webUrl) {
+  if (!webUrl || webUrl === '#') return webUrl;
+  const m = webUrl.match(/open\.spotify\.com\/(album|track|artist|playlist)\/([a-zA-Z0-9]+)/);
+  if (m) return `spotify:${m[1]}:${m[2]}`;
+  return webUrl;
+}
+
+// Open a Spotify link and track it in app history
+function openSpotify(e, type, item) {
+  trackPlay(type, item);
+  // navigation happens via the anchor href naturally
+}
+
 function cardH(r, type) {
-  const isA=type==='artist';
-  const name=isA?(r.artist_name||''):(r.album_name||r.track_name||'');
-  const sub2=isA?'':(r.primary_artist_name||'');
-  const img=isA?r.artist_image_url:(r.album_image_url||r.image_url);
-  const url=isA?r.artist_url:(r.album_url||r.track_url||'#');
-  const tags=(r.final_genres||'').split(',').map(g=>g.trim()).filter(Boolean).slice(0,2).map(g=>`<span class="gtag">${g}</span>`).join('');
-  const date=type==='played'?fmtDT(r.played_at):fmtD(r.added_date);
-  const em=isA?'🎤':'💿';
-  const imgEl=img?`<img class="card-img" src="${img}" alt="" loading="lazy" onerror="this.style.display='none';this.nextSibling.style.display='flex'"><div class="card-ph" style="display:none">${em}</div>`:`<div class="card-ph">${em}</div>`;
-  return `<a class="card" href="${url||'#'}" target="_blank" rel="noopener">${imgEl}<div class="card-body"><div class="card-name">${name}</div>${sub2?`<div class="card-sub">${sub2}</div>`:''}<div class="card-genres">${tags}</div>${date?`<div class="card-date">${date}</div>`:''}</div></a>`;
+  const isA = type==='artist';
+  const name = isA?(r.artist_name||''):(r.album_name||r.track_name||'');
+  const sub2 = isA?'':(r.primary_artist_name||'');
+  const img = isA?r.artist_image_url:(r.album_image_url||r.image_url);
+  const rawUrl = isA?r.artist_url:(r.album_url||r.track_url||'#');
+  const url = isA?rawUrl:spotifyAppUrl(rawUrl);
+  const tags = (r.final_genres||'').split(',').map(g=>g.trim()).filter(Boolean).slice(0,2).map(g=>`<span class="gtag">${g}</span>`).join('');
+  const date = type==='played'?fmtDT(r.played_at):fmtD(r.added_date);
+  const em = isA?'🎤':'💿';
+  const imgEl = img?`<img class="card-img" src="${img}" alt="" loading="lazy" onerror="this.style.display='none';this.nextSibling.style.display='flex'"><div class="card-ph" style="display:none">${em}</div>`:`<div class="card-ph">${em}</div>`;
+
+  const trackData = !isA ? `onclick="openSpotify(event,'album',{album_name:'${(r.album_name||'').replace(/'/g,"\\'")}',primary_artist_name:'${(r.primary_artist_name||'').replace(/'/g,"\\'")}',album_url:'${(r.album_url||'')}',artist_url:'${(r.artist_url||'')}',image_url:'${(r.album_image_url||r.image_url||'')}'})"` : '';
+  if (isA) {
+    const safeName = (r.artist_name||'').replace(/'/g,"\\'");
+    const isOpen = expandedArtist === r.artist_name;
+    const borderStyle = isOpen ? 'border-color:var(--green)' : '';
+    const tappableTags = (r.final_genres||'').split(',').map(g=>g.trim()).filter(Boolean).slice(0,2)
+      .map(g=>`<span class="gtag" onclick="event.stopPropagation();goToGenre('${g.replace(/'/g,"\\'")}');" style="cursor:pointer">${g}</span>`).join('');
+    return `<div class="card" onclick="toggleArtistExpand('${safeName}')" style="cursor:pointer;${borderStyle}">${imgEl}<div class="card-body"><div class="card-name">${name}</div><div class="card-genres">${tappableTags}</div>${date?`<div class="card-date">${date}</div>`:''}</div></div>`;
+  }
+  return `<a class="card" href="${url||'#'}" ${trackData}>${imgEl}<div class="card-body"><div class="card-name">${name}</div>${sub2?`<div class="card-sub" onclick="event.preventDefault();event.stopPropagation();toggleArtistExpand('${sub2.replace(/'/g,"\\'")}','${(r.artist_url||'').replace(/'/g,"\\'")}');" style="cursor:pointer;color:var(--green)">${sub2}</div>`:''}<div class="card-genres">${tags}</div>${date?`<div class="card-date">${date}</div>`:''}</div></a>`;
 }
 
 function listH(r, type, idx) {
-  const isA=type==='artist';
-  const name=isA?(r.artist_name||''):(r.album_name||r.track_name||'');
-  const sub2=isA?(r.final_genres||'').split(',')[0]?.trim()||'':(r.primary_artist_name||'');
-  const img=isA?r.artist_image_url:(r.album_image_url||r.image_url);
-  const url=isA?r.artist_url:(r.album_url||r.track_url||'#');
-  const date=type==='played'?fmtDT(r.played_at):fmtD(r.added_date);
-  const em=isA?'🎤':'💿';
-  const th=img?`<div class="lthumb"><img src="${img}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='${em}'"></div>`:`<div class="lthumb">${em}</div>`;
-  const num=idx!=null?`<div class="lnum">${idx+1}</div>`:'';
-  return `<a class="litem" href="${url||'#'}" target="_blank" rel="noopener">${num}${th}<div class="linfo"><div class="lname">${name}</div>${sub2?`<div class="lsub">${sub2}</div>`:''}</div>${date?`<div class="ldate">${date}</div>`:''}</a>`;
+  const isA = type==='artist';
+  const name = isA?(r.artist_name||''):(r.album_name||r.track_name||'');
+  const sub2 = isA?(r.final_genres||'').split(',')[0]?.trim()||'':(r.primary_artist_name||'');
+  const img = isA?r.artist_image_url:(r.album_image_url||r.image_url);
+  const rawUrl = isA?r.artist_url:(r.album_url||r.track_url||'#');
+  const url = isA?rawUrl:spotifyAppUrl(rawUrl);
+  const date = type==='played'?fmtDT(r.played_at):fmtD(r.added_date);
+  const em = isA?'🎤':'💿';
+  const th = img?`<div class="lthumb"><img src="${img}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='${em}'"></div>`:`<div class="lthumb">${em}</div>`;
+  const num = idx!=null?`<div class="lnum">${idx+1}</div>`:'';
+
+  const trackDataL = !isA ? `onclick="openSpotify(event,'album',{album_name:'${(r.album_name||'').replace(/'/g,"\\'")}',primary_artist_name:'${(r.primary_artist_name||'').replace(/'/g,"\\'")}',album_url:'${(r.album_url||'')}',artist_url:'${(r.artist_url||'')}',image_url:'${(r.album_image_url||r.image_url||'')}'})"` : '';
+  if (isA) {
+    const safeName = (r.artist_name||'').replace(/'/g,"\\'");
+    const safeGenre = (sub2||'').replace(/'/g,"\\'");
+    const isOpen = expandedArtist === r.artist_name;
+    const expandHTML = isOpen
+      ? `<div class="litem-expand">${buildExpandInner(r, true)}</div>`
+      : '';
+    const genreLbl = sub2 ? `<div class="lsub" onclick="event.stopPropagation();goToGenre('${safeGenre}');" style="cursor:pointer;color:var(--green)">${sub2}</div>` : '';
+    return `<div>
+      <div class="litem litem-artist" onclick="toggleArtistExpand('${safeName}')">${num}${th}<div class="linfo"><div class="lname">${name}</div>${genreLbl}</div>${date?`<div class="ldate">${date}</div>`:''}</div>
+      ${expandHTML}
+    </div>`;
+  }
+  return `<a class="litem" href="${url||'#'}" ${trackDataL}>${num}${th}<div class="linfo"><div class="lname">${name}</div>${sub2?`<div class="lsub" onclick="event.preventDefault();event.stopPropagation();toggleArtistExpand('${sub2.replace(/'/g,"\\'")}','${(r.artist_url||'').replace(/'/g,"\\'")}');" style="cursor:pointer;color:var(--green)">${sub2}</div>`:''}</div>${date?`<div class="ldate">${date}</div>`:''}</a>`;
 }
 
 function renderCards(data, type) {
@@ -367,31 +667,45 @@ function renderCards(data, type) {
   const c = document.getElementById('content');
   if (!rows.length){c.innerHTML='<div class="state"><span class="icon">🔍</span>No results</div>';return;}
 
-  // Albums in list view + A-Z: group by artist, sorted smartly
-  if (type==='album' && view==='list' && sort==='name') {
-    const groups = {};
-    const order = [];
-    rows.forEach(r => {
-      const artist = r.primary_artist_name || 'Unknown Artist';
-      if (!groups[artist]) { groups[artist] = {rows:[], type: r.artist_type||''}; order.push(artist); }
-      groups[artist].rows.push(r);
-    });
-    order.sort((a, b) => artistSortName(a, groups[a].type).localeCompare(artistSortName(b, groups[b].type)));
-    let html = '<div class="list">';
-    order.forEach(artist => {
-      html += `<div class="artist-header">${artist}</div>`;
-      groups[artist].rows.forEach((r, i) => { html += listH(r, 'album', i); });
+
+
+  if (view==='list') {
+    c.innerHTML = `<div class="list">${rows.map((r,i)=>listH(r,type,i)).join('')}</div>`;
+    return;
+  }
+
+  // Grid view — for artists, inject expand panel after the card in the correct row
+  if (type==='artist') {
+    let html = '<div class="grid">';
+    rows.forEach((r, i) => {
+      html += cardH(r, type);
+      // After every 2nd card (i=1,3,5…) OR after the last card if odd count,
+      // check if the expanded artist is in this pair
+      const isEvenIndex = (i % 2 === 1);
+      const isLast = (i === rows.length - 1);
+      if (isEvenIndex || isLast) {
+        // Pair is rows[i-1] (or rows[i] if last+odd) and rows[i]
+        const pairStart = isLast && rows.length % 2 === 1 ? i : i - 1;
+        const pairNames = [rows[pairStart].artist_name];
+        if (!isLast || rows.length % 2 === 0) pairNames.push(rows[i].artist_name);
+        if (expandedArtist && pairNames.includes(expandedArtist)) {
+          const artist = artists.find(a => a.artist_name === expandedArtist);
+          if (artist) {
+            html += `<div class="artist-expand">${buildExpandInner(artist, false)}</div>`;
+          }
+        }
+      }
     });
     html += '</div>';
     c.innerHTML = html;
     return;
   }
 
-  c.innerHTML = view==='grid' ? `<div class="grid">${rows.map(r=>cardH(r,type)).join('')}</div>` : `<div class="list">${rows.map((r,i)=>listH(r,type,i)).join('')}</div>`;
+  c.innerHTML = `<div class="grid">${rows.map(r=>cardH(r,type)).join('')}</div>`;
 }
 
 function renderGenreList() {
-  const MIN=3;
+  const MIN=5;
   const genres = Object.entries(gIndex).filter(([,c])=>(c.artists+c.albums)>=MIN).sort((a,b)=>(b[1].artists+b[1].albums)-(a[1].artists+a[1].albums));
   document.getElementById('countLbl').textContent='';
   const c = document.getElementById('content');
@@ -418,51 +732,194 @@ function renderDrill(){
   const type=drillSub==='artists'?'artist':'album';
   let rows=data.filter(r=>(r.final_genres||'').split(',').map(g=>g.trim().toLowerCase()).includes(drill.toLowerCase()));
   if(q){const lq=q.toLowerCase();rows=rows.filter(r=>(r.artist_name||r.album_name||'').toLowerCase().includes(lq));}
-  rows=[...rows].sort((a,b)=>{
-    if (sort==='name') {
-      if (type==='album') return albumSortKey(a).localeCompare(albumSortKey(b));
-      return stripArticle(a.artist_name||'').localeCompare(stripArticle(b.artist_name||''));
-    }
-    return new Date(b.added_date||0)-new Date(a.added_date||0);
-  });
+  rows=[...rows].sort((a,b)=>sort==='name'?artistSortKey(a.artist_name||a.album_name||'').localeCompare(artistSortKey(b.artist_name||b.album_name||'')):new Date(b.added_date||0)-new Date(a.added_date||0));
   document.getElementById('countLbl').textContent=`${rows.length} ${type}s`;
   const c=document.getElementById('content');
   if(!rows.length){c.innerHTML='<div class="state"><span class="icon">🔍</span>No results</div>';return;}
+
+  if (type==='artist') {
+    if (view==='list') {
+      c.innerHTML=`<div class="list">${rows.map((r,i)=>listH(r,type,i)).join('')}</div>`;
+    } else {
+      let html='<div class="grid">';
+      rows.forEach((r,i)=>{
+        html+=cardH(r,type);
+        const isEvenIndex=(i%2===1), isLast=(i===rows.length-1);
+        if(isEvenIndex||isLast){
+          const pairStart=isLast&&rows.length%2===1?i:i-1;
+          const pairNames=[rows[pairStart].artist_name];
+          if(!isLast||rows.length%2===0)pairNames.push(rows[i].artist_name);
+          if(expandedArtist&&pairNames.includes(expandedArtist)){
+            const artist=artists.find(a=>a.artist_name===expandedArtist);
+            if(artist)html+=`<div class="artist-expand">${buildExpandInner(artist,false)}</div>`;
+          }
+        }
+      });
+      html+='</div>';
+      c.innerHTML=html;
+    }
+    return;
+  }
   c.innerHTML=view==='grid'?`<div class="grid">${rows.map(r=>cardH(r,type)).join('')}</div>`:`<div class="list">${rows.map((r,i)=>listH(r,type,i)).join('')}</div>`;
 }
 
 function renderRecent(){
   if(sub==='played'){
-    // Dedup by album: keep first occurrence (most recently played) of each album
-    const seenAlbums = new Set();
-    const dedupedPlayed = played.filter(r => {
-      const key = (r.album_name||'') + '||' + (r.primary_artist_name||'');
-      if (seenAlbums.has(key)) return false;
-      seenAlbums.add(key);
-      return true;
-    });
-    document.getElementById('countLbl').textContent=`${dedupedPlayed.length} albums`;
     const c=document.getElementById('content');
-    if(!dedupedPlayed.length){c.innerHTML='<div class="state"><span class="icon">🎵</span>No recently played data yet</div>';return;}
-    c.innerHTML=view==='grid'?`<div class="grid">${dedupedPlayed.map(r=>cardH(r,'played')).join('')}</div>`:`<div class="list">${dedupedPlayed.map((r,i)=>listH(r,'played',i)).join('')}</div>`;
+    if(!played.length){c.innerHTML='<div class="state"><span class="icon">🎵</span>No recently played data yet</div>';return;}
+
+    // Merge app-tracked history with Spotify recently played
+    const allPlayed = mergePlayHistory(played);
+
+    if(playedSub==='artists'){
+      const artistMap={}, artistOrder=[];
+      allPlayed.forEach(r=>{
+        const key=r.artist_url||r.primary_artist_name||'';
+        if(!key) return;
+        if(!artistMap[key]){
+          artistMap[key]={
+            artist_name: r.primary_artist_name||'',
+            artist_url: r.artist_url||'#',
+            image_url: '',
+            played_at: r.played_at||'',
+            track_count: 0,
+          };
+          artistOrder.push(key);
+        }
+        artistMap[key].track_count++;
+        if((r.played_at||'')>artistMap[key].played_at) artistMap[key].played_at=r.played_at;
+      });
+      const artistRows=artistOrder.map(k=>artistMap[k]);
+      document.getElementById('countLbl').textContent=`${artistRows.length} artist${artistRows.length!==1?'s':''}`;
+      // Store stubs for non-followed artists so onclick can look them up safely
+      window._playedArtistStubs = {};
+      const html=artistRows.map((a,i)=>{
+        const fullArtist=artists.find(ar=>
+          (ar.artist_url && ar.artist_url===(a.artist_url||'')) ||
+          (ar.artist_name||'').toLowerCase()===(a.artist_name||'').toLowerCase()
+        );
+        const img=fullArtist?fullArtist.artist_image_url:'';
+        const th=img
+          ?`<div class="lthumb"><img src="${img}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='🎤'"></div>`
+          :`<div class="lthumb">🎤</div>`;
+        const date=fmtDT(a.played_at);
+        const safeName=(a.artist_name||'').replace(/'/g,"\\'");
+        const followLbl=fullArtist?'':`<span style="font-size:10px;color:var(--text3);margin-left:6px">not following</span>`;
+        const isOpen=expandedArtist===a.artist_name;
+        if(!fullArtist){
+          window._playedArtistStubs[a.artist_name]={artist_name:a.artist_name,artist_url:a.artist_url||'',artist_image_url:'',final_genres:'',_notFollowing:true};
+        }
+        const expandArtist=fullArtist||window._playedArtistStubs[a.artist_name];
+        const expandHTML=isOpen?`<div class="litem-expand">${buildExpandInner(expandArtist,true)}</div>`:'';
+        return `<div>
+          <div class="litem litem-artist" onclick="toggleArtistExpand('${safeName}')">
+            <div class="lnum">${i+1}</div>
+            ${th}
+            <div class="linfo">
+              <div class="lname">${a.artist_name}${followLbl}</div>
+              <div class="lsub">${a.track_count} track${a.track_count!==1?'s':''} played</div>
+            </div>
+            ${date?`<div class="ldate">${date}</div>`:''}
+          </div>
+          ${expandHTML}
+        </div>`;
+      }).join('');
+      c.innerHTML=`<div class="list">${html}</div>`;
+      return;
+    }
+
+    // Albums view (default)
+    const albumMap={};
+    const albumOrder=[];
+    allPlayed.forEach(r=>{
+      const key=(r.album_url||r.track_url||'')+(r.primary_artist_name||'');
+      if(!key) return;
+      if(!albumMap[key]){
+        albumMap[key]={
+          album_name: r.album_name||'',
+          primary_artist_name: r.primary_artist_name||'',
+          album_url: r.album_url||r.track_url||'#',
+          image_url: r.image_url||'',
+          artist_url: r.artist_url||'',
+          played_at: r.played_at||'',
+          track_count: 0,
+        };
+        albumOrder.push(key);
+      }
+      albumMap[key].track_count++;
+      if((r.played_at||'')>albumMap[key].played_at) albumMap[key].played_at=r.played_at;
+    });
+
+    const albumRows=albumOrder.map(k=>albumMap[k]);
+    document.getElementById('countLbl').textContent=`${albumRows.length} album${albumRows.length!==1?'s':''}`;
+
+    const html=albumRows.map((a,i)=>{
+      const img=a.image_url;
+      const th=img
+        ?`<div class="lthumb"><img src="${img}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='💿'"></div>`
+        :`<div class="lthumb">💿</div>`;
+      const date=fmtDT(a.played_at);
+      const trackLbl=`${a.track_count} track${a.track_count!==1?'s':''}`;
+      const safeArtist=(a.primary_artist_name||'').replace(/'/g,"\\'");
+      const safeArtistUrl=(a.artist_url||'').replace(/'/g,"\\'");
+      return `<a class="litem" href="${spotifyAppUrl(a.album_url)}" target="_blank" rel="noopener">
+        <div class="lnum">${i+1}</div>
+        ${th}
+        <div class="linfo">
+          <div class="lname">${a.album_name}</div>
+          <div class="lsub">${a.primary_artist_name?`<span onclick="event.preventDefault();event.stopPropagation();toggleArtistExpand('${safeArtist}','${safeArtistUrl}');" style="cursor:pointer;color:var(--green)">${a.primary_artist_name}</span> · `:''}${trackLbl}</div>
+        </div>
+        ${date?`<div class="ldate">${date}</div>`:''}
+      </a>`;
+    }).join('');
+    c.innerHTML=`<div class="list">${html}</div>`;
     return;
   }
-  let rows=[...artists.map(r=>({...r,_t:'artist'})),...albums.map(r=>({...r,_t:'album'}))].sort((a,b)=>new Date(b.added_date||0)-new Date(a.added_date||0));
-  if(q){const lq=q.toLowerCase();rows=rows.filter(r=>(r.artist_name||r.album_name||'').toLowerCase().includes(lq));}
-  document.getElementById('countLbl').textContent=`${rows.length} items`;
+  let rows;
+  if (addedSub==='artists') {
+    rows = [...artists.map(r=>({...r,_t:'artist'}))];
+    if(q){const lq=q.toLowerCase();rows=rows.filter(r=>(r.artist_name||'').toLowerCase().includes(lq));}
+    rows.sort((a,b)=>sort==='name'?artistSortKey(a.artist_name||'').localeCompare(artistSortKey(b.artist_name||'')):sort==='popular'?(parseInt(b.popularity)||0)-(parseInt(a.popularity)||0):new Date(b.added_date||0)-new Date(a.added_date||0));
+    document.getElementById('countLbl').textContent=`${rows.length} artists`;
+  } else {
+    rows = [...albums.map(r=>({...r,_t:'album'}))];
+    if(q){const lq=q.toLowerCase();rows=rows.filter(r=>(r.album_name||'').toLowerCase().includes(lq)||(r.primary_artist_name||'').toLowerCase().includes(lq));}
+    rows.sort((a,b)=>sort==='name'?(a.album_name||'').localeCompare(b.album_name||''):new Date(b.added_date||0)-new Date(a.added_date||0));
+    document.getElementById('countLbl').textContent=`${rows.length} albums`;
+  }
   const c=document.getElementById('content');
   if(!rows.length){c.innerHTML='<div class="state"><span class="icon">🔍</span>No results</div>';return;}
   c.innerHTML=view==='grid'?`<div class="grid">${rows.map(r=>cardH(r,r._t)).join('')}</div>`:`<div class="list">${rows.map((r,i)=>listH(r,r._t,i)).join('')}</div>`;
 }
 
 function switchTab(t){
-  tab=t;drill=null;genre='All';q='';
+  tab=t;drill=null;genre='All';q='';expandedArtist=null;addedSub='artists';playedSub='albums';
   document.getElementById('searchInput').value='';
-  document.getElementById('srtP').style.display = t==='artists' ? 'inline-block' : 'none';
-  if (sort==='popular' && t!=='artists') { sort='recent'; document.getElementById('srtR').classList.add('active'); document.getElementById('srtP').classList.remove('active'); }
+  const showPop = t==='artists' || (t==='recent' && sub==='added' && addedSub==='artists');
+  document.getElementById('srtP').style.display = showPop ? 'inline-block' : 'none';
+  if (sort==='popular' && !showPop) { sort='recent'; document.getElementById('srtR').classList.add('active'); document.getElementById('srtP').classList.remove('active'); }
   render();
 }
-function switchSub(s){sub=s;document.getElementById('sub-added').classList.toggle('active',s==='added');document.getElementById('sub-played').classList.toggle('active',s==='played');renderRecent();}
+function switchSub(s){
+  sub=s;
+  document.getElementById('sub-added').classList.toggle('active',s==='added');
+  document.getElementById('sub-played').classList.toggle('active',s==='played');
+  document.getElementById('subNav2').classList.toggle('visible', s==='added');
+  document.getElementById('subNav3').classList.toggle('visible', s==='played');
+  renderRecent();
+}
+function switchAddedSub(s){
+  addedSub=s;
+  document.getElementById('sub-added-artists').classList.toggle('active',s==='artists');
+  document.getElementById('sub-added-albums').classList.toggle('active',s==='albums');
+  renderRecent();
+}
+function switchPlayedSub(s){
+  playedSub=s;
+  document.getElementById('sub-played-albums').classList.toggle('active',s==='albums');
+  document.getElementById('sub-played-artists').classList.toggle('active',s==='artists');
+  renderRecent();
+}
 function setSort(s){
   sort=s;
   document.getElementById('srtR').classList.toggle('active',s==='recent');
@@ -474,7 +931,7 @@ function setView(v){view=v;document.getElementById('vGrid').classList.toggle('ac
 document.getElementById('searchInput').addEventListener('input',e=>{q=e.target.value;render();});
 
 function showGenreModal(){
-  const MIN=3;
+  const MIN=5;
   gModalAll=[{name:'All',count:artists.length+albums.length},...Object.entries(gIndex).filter(([,c])=>(c.artists+c.albums)>=MIN).sort((a,b)=>(b[1].artists+b[1].albums)-(a[1].artists+a[1].albums)).map(([g,c])=>({name:g,count:c.artists+c.albums}))];
   document.getElementById('genreSearch').value='';
   renderGenreModal(gModalAll);
@@ -492,22 +949,166 @@ function pickGenre(g){
 }
 function hideGenreModal(){document.getElementById('genreModal').style.display='none';}
 
-function showConfig(){document.getElementById('sheetId').value=cfg.sheetId||'';document.getElementById('configModal').style.display='flex';}
+function showConfig(){
+  document.getElementById('sheetId').value=cfg.sheetId||'';
+  document.getElementById('historyUrl').value=cfg.historyUrl||'';
+  document.getElementById('configModal').style.display='flex';
+}
 function hideConfig(){document.getElementById('configModal').style.display='none';}
 function saveConfig(){
   const id=document.getElementById('sheetId').value.trim();
   if(!id)return;
+  const histUrl=document.getElementById('historyUrl').value.trim();
   cfg.sheetId=id;
+  cfg.historyUrl=histUrl||'';
   localStorage.setItem(CFG_KEY,JSON.stringify(cfg));
   localStorage.removeItem(DATA_KEY);
   hideConfig();
   load(true);
 }
 
+// ── Artist name sort key ──────────────────────────────────────────────────
+// Rules:
+//   1. Strip leading "The ", "A ", "An " for all names
+//   2. If name looks like "Firstname Lastname" (exactly 2 words, no article),
+//      sort by "Lastname Firstname" — e.g. "Michael Jackson" → "jackson michael"
+//   3. Everything else sorts by first significant word
+// Display names are never changed — only the sort key is affected.
+const ARTICLES = /^(the|a|an)\s+/i;
+const PEOPLE_EXCEPTIONS = new Set([
+  // Bands that look like two-word people names — sort by first word
+  'black crowes','black keys','black flag','black sabbath','black mountain',
+  'black elephant',
+  'white stripes','white lies','dead kennedys','dead weather',
+  'talking heads','rolling stones','beastie boys',
+  'blind faith','blind melon','buffalo springfield','creedence clearwater',
+  'grateful dead','grand funk','lynyrd skynyrd','molly hatchet',
+  'mountain goats','neutral milk','night ranger','pearl jam',
+  'phish','pixies','primus','queens of the stone age',
+  'radiohead','rage against','red hot','smashing pumpkins',
+  'soundgarden','stone temple','stone roses','velvet underground',
+  'violent femmes','widespread panic','wilco','weezer',
+  // Round 1
+  'captain beefheart','whoopie cat','detroit cobras','may company',
+  'record company','heavy crawls','red devils','flying eyes','heavy eyes',
+  'blackwater fever','lunar effect','floyd lee','riverboat gamblers',
+  'sleep eazys','grand east','bone church','drug church','blind dog',
+  'white dog','snoop dog','swamp dogg','mondo drag','arcy drive',
+  'heavy feather','stick figure','beach fly','ruby force','buffalo fuzz',
+  'pink fuzz','pink floyd','mos generator','surfer girl','soul glo',
+  'electric gold','ancient greece','meantooth grin','death grips',
+  'militarie gun','massive hassle','wo fat','mob deep','motley crue',
+  'mötley crüe','chaz bundick',
+  // Round 2
+  'mattson 2','deltron 3030','nostalgia 77',
+  'hip abduction','canned heat','electric hollers','dirty honey',
+  'riot horse','funk hunters','little hurricane',
+  'ragged jubilee','goodbye june','buffalo killers','ugly kings',
+  'wet leg','mystery lights','wine lips','shadow lizards',
+  'camp lo','brought low','fleetwood mac','taj mahal',
+  'handsome jack','born jamericans',
+]);
+
+// Specific overrides for 3-word (or unusual) people names → sort by last name
+const SORT_OVERRIDES = {
+  'garrett t. willie': 'willie garrett t',
+  'garret t. willie': 'willie garret t',
+  'christone kingfish ingram': 'ingram christone kingfish',
+  "charlie patton's war": 'patton charlie',
+  'cedric burnside project': 'burnside cedric project',
+  'eddie cleanhead vinson': 'vinson eddie cleanhead',
+  'gary clark jr.': 'clark gary jr',
+  'gary clark jr': 'clark gary jr',
+  'glen crytzer': 'crytzer glen',
+  'harlis sweetwater band': 'sweetwater harlis band',
+  'doug e. fresh': 'fresh doug e',
+  'eric b. and rakim': 'rakim eric b',
+  // Round 2 people
+  'hope sandoval': 'sandoval hope',
+  'indigo de souza': 'de souza indigo',
+  'izzy stradlin': 'stradlin izzy',
+  'james mathus': 'mathus james',
+  'jesse sykes': 'sykes jesse',
+  'jj grey': 'grey jj',
+  'john coltrane quartet': 'coltrane john quartet',
+  'joanne shaw taylor': 'taylor joanne shaw',
+  'justin townes earle': 'earle justin townes',
+  'chief kamachi': 'kamachi chief',
+  'kris lager band': 'lager kris band',
+  'lewis floyd henry': 'henry lewis floyd',
+  'linton kwesi johnson': 'johnson linton kwesi',
+  'liza colby sound': 'colby liza sound',
+  'luther snake boy johnson': 'johnson luther snake boy',
+};
+
+function artistSortKey(name) {
+  if (!name) return '';
+  const lower = name.toLowerCase().trim();
+  // Check specific overrides first
+  if (SORT_OVERRIDES[lower]) return SORT_OVERRIDES[lower];
+  // Strip leading article
+  const stripped = name.replace(ARTICLES, '').trim();
+  const lstripped = stripped.toLowerCase();
+  const words = lstripped.split(/\s+/);
+
+  // Two-word name: check if it's a person (not a known band)
+  if (words.length === 2 && !PEOPLE_EXCEPTIONS.has(lstripped)) {
+    return words[1] + ' ' + words[0];
+  }
+
+  // Everything else: sort by first significant word
+  return lstripped;
+}
+const PIN_KEY = 'mmg_pin_v1';
+// SHA-256 hash of PIN "7482" — the actual PIN is never stored in code or localStorage
+const PIN_HASH = '91bca017d06790f59b5d54a86a592298c5ad8e88e0b7fc98cae7bdee361473ba';
+
+async function hashPin(pin) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pin));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function isPinUnlocked() {
+  return localStorage.getItem(PIN_KEY) === PIN_HASH;
+}
+
+async function checkPin() {
+  if (isPinUnlocked()) { initApp(); return; }
+  showPinScreen();
+}
+
+function showPinScreen() {
+  document.getElementById('pinScreen').style.display='flex';
+  document.getElementById('pinInput').focus();
+}
+
+function hidePinScreen() {
+  document.getElementById('pinScreen').style.display='none';
+}
+
+async function submitPin() {
+  const val = document.getElementById('pinInput').value.trim();
+  if (!val) return;
+  const hash = await hashPin(val);
+  if (hash === PIN_HASH) {
+    localStorage.setItem(PIN_KEY, PIN_HASH);
+    hidePinScreen();
+    initApp();
+  } else {
+    document.getElementById('pinError').style.display='block';
+    document.getElementById('pinInput').value='';
+    document.getElementById('pinInput').focus();
+    setTimeout(()=>document.getElementById('pinError').style.display='none', 2000);
+  }
+}
+
+function initApp() {
+  hideConfig();
+  load();
+}
+
 hideConfig();
-document.getElementById('vGrid').classList.toggle('active', view==='grid');
-document.getElementById('vList').classList.toggle('active', view==='list');
-load();
+checkPin();
 </script>
 </body>
 </html>
