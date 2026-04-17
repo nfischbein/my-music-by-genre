@@ -308,8 +308,6 @@ function render() {
 
 const stripArticle = name => (name || '').replace(/^(the|a|an)\s+/i, '').trim();
 const artistSortName = (name, type) => {
-  // type = 'artist' (solo person) → sort by last name
-  // type = 'group' or unknown → strip article, sort by full name
   if (type === 'artist') {
     const stripped = stripArticle(name);
     const parts = stripped.split(/\s+/);
@@ -434,10 +432,18 @@ function renderDrill(){
 
 function renderRecent(){
   if(sub==='played'){
-    document.getElementById('countLbl').textContent=`${played.length} tracks`;
+    // Dedup by album: keep first occurrence (most recently played) of each album
+    const seenAlbums = new Set();
+    const dedupedPlayed = played.filter(r => {
+      const key = (r.album_name||'') + '||' + (r.primary_artist_name||'');
+      if (seenAlbums.has(key)) return false;
+      seenAlbums.add(key);
+      return true;
+    });
+    document.getElementById('countLbl').textContent=`${dedupedPlayed.length} albums`;
     const c=document.getElementById('content');
-    if(!played.length){c.innerHTML='<div class="state"><span class="icon">🎵</span>No recently played data yet</div>';return;}
-    c.innerHTML=view==='grid'?`<div class="grid">${played.map(r=>cardH(r,'played')).join('')}</div>`:`<div class="list">${played.map((r,i)=>listH(r,'played',i)).join('')}</div>`;
+    if(!dedupedPlayed.length){c.innerHTML='<div class="state"><span class="icon">🎵</span>No recently played data yet</div>';return;}
+    c.innerHTML=view==='grid'?`<div class="grid">${dedupedPlayed.map(r=>cardH(r,'played')).join('')}</div>`:`<div class="list">${dedupedPlayed.map((r,i)=>listH(r,'played',i)).join('')}</div>`;
     return;
   }
   let rows=[...artists.map(r=>({...r,_t:'artist'})),...albums.map(r=>({...r,_t:'album'}))].sort((a,b)=>new Date(b.added_date||0)-new Date(a.added_date||0));
