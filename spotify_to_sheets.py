@@ -150,48 +150,17 @@ def chunked(iterable, size):
 # Checkpoint helpers
 # -----------------------------
 
-# Checkpoints expire after this many seconds.
-# - Recently played: always fresh (no checkpoint)
-# - Saved tracks/albums/artists: refresh daily so new saves are picked up
-CHECKPOINT_TTL = {
-    "saved_tracks":     86400,   # 24 hours
-    "saved_albums":     86400,   # 24 hours
-    "followed_artists": 86400,   # 24 hours
-    "artist_details_map": 604800, # 7 days (rarely changes)
-}
-CHECKPOINT_TTL_DEFAULT = 86400   # 24 hours for anything not listed
-
 
 def save_checkpoint(path, data):
-    wrapped = {
-        "saved_at": time.time(),
-        "data": data,
-    }
     with open(path, "w", encoding="utf-8") as f:
-        json.dump(wrapped, f, ensure_ascii=False)
+        json.dump(data, f, ensure_ascii=False)
 
 
 def load_checkpoint(path, default=None):
-    if not os.path.exists(path):
-        return default
-    try:
+    if os.path.exists(path):
         with open(path, "r", encoding="utf-8") as f:
-            wrapped = json.load(f)
-        # Support both old format (raw list/dict) and new format (wrapped with saved_at)
-        if not isinstance(wrapped, dict) or "saved_at" not in wrapped:
-            # Old format — treat as expired so we re-fetch fresh
-            log(f"Checkpoint {path} is old format, will re-fetch.")
-            return default
-        age = time.time() - wrapped["saved_at"]
-        # Determine TTL from filename
-        name = os.path.basename(path).replace(".json", "")
-        ttl = CHECKPOINT_TTL.get(name, CHECKPOINT_TTL_DEFAULT)
-        if age > ttl:
-            log(f"Checkpoint {path} expired ({int(age/3600)}h old, TTL {int(ttl/3600)}h), will re-fetch.")
-            return default
-        return wrapped["data"]
-    except Exception:
-        return default
+            return json.load(f)
+    return default
 
 
 # -----------------------------
@@ -378,9 +347,6 @@ def build_recently_played_dataframe(recently_played, artist_details_map):
         primary_artist_id = primary_artist.get("id", "")
         artist_obj = artist_details_map.get(primary_artist_id, {})
         artist_url = safe_get(artist_obj, "external_urls", "spotify", default="")
-        # Construct URL from ID if not available from artist_details_map
-        if not artist_url and primary_artist_id:
-            artist_url = f"https://open.spotify.com/artist/{primary_artist_id}"
         rows.append({
             "played_at": played_at,
             "track_name": track_name,
@@ -439,442 +405,112 @@ def fetch_artist_details(sp, artist_ids):
 # -----------------------------
 
 
-# ---------------------------------------------------------------------------
-# FINAL 21-BUCKET GENRE CONSOLIDATION SYSTEM
-#
-# Buckets (display order):
-#   Rock, Blues, Acoustic Blues, Folk, Country, Americana, Acoustic,
-#   Hip Hop, Metal, Jazz, R&B / Soul, Neo Soul, Funk, Electronic, Pop,
-#   Reggae, Dance, Experimental, Latin, Classical, World
-#
-# Design rules:
-#   - Every key maps to exactly one canonical bucket label.
-#   - More-specific buckets (Acoustic Blues, Neo Soul, Funk) are listed
-#     BEFORE broader ones (Blues, R&B / Soul) so the first match wins
-#     when we iterate in order.
-#   - consolidate_genres() adds bucket labels alongside existing tags;
-#     it does NOT strip the original micro-genre tags so raw data is preserved.
-# ---------------------------------------------------------------------------
+GENRE_PARENT_MAP = {
+    # Rock
+    "indie rock": "rock", "alternative rock": "rock", "post-rock": "rock",
+    "classic rock": "rock", "hard rock": "rock", "soft rock": "rock",
+    "progressive rock": "rock", "psychedelic rock": "rock", "garage rock": "rock",
+    "art rock": "rock", "glam rock": "rock", "punk rock": "rock",
+    "folk rock": "rock", "country rock": "rock", "blues rock": "rock",
+    "math rock": "rock", "noise rock": "rock", "surf rock": "rock",
+    "britpop": "rock", "grunge": "rock", "shoegaze": "rock",
+    "post-grunge": "rock", "emo": "rock", "screamo": "rock",
+    "new wave": "rock", "post-punk": "rock", "gothic rock": "rock",
+    "industrial rock": "rock", "arena rock": "rock", "heartland rock": "rock",
 
-# Ordered list of (micro_genre_lowercase, canonical_bucket) pairs.
-# ORDER MATTERS — more specific entries must come before general ones.
-GENRE_BUCKET_MAP = [
-    # ── Acoustic Blues (before Blues) ──────────────────────────────────────
-    ("acoustic blues", "Acoustic Blues"),
-    ("country blues", "Acoustic Blues"),
-    ("delta blues", "Acoustic Blues"),
-    ("piedmont blues", "Acoustic Blues"),
-    ("folk blues", "Acoustic Blues"),
-    ("primitive blues", "Acoustic Blues"),
-    ("pre-war blues", "Acoustic Blues"),
-    ("hill country blues", "Acoustic Blues"),
+    # Pop
+    "indie pop": "pop", "dream pop": "pop", "synth-pop": "pop",
+    "electropop": "pop", "power pop": "pop", "art pop": "pop",
+    "baroque pop": "pop", "chamber pop": "pop", "bubblegum pop": "pop",
+    "teen pop": "pop", "dance-pop": "pop", "k-pop": "pop",
+    "j-pop": "pop", "c-pop": "pop", "hyperpop": "pop",
 
-    # ── Blues ──────────────────────────────────────────────────────────────
-    ("blues", "Blues"),
-    ("electric blues", "Blues"),
-    ("chicago blues", "Blues"),
-    ("texas blues", "Blues"),
-    ("blues rock", "Blues"),
-    ("west coast blues", "Blues"),
-    ("swamp blues", "Blues"),
-    ("boogie woogie", "Blues"),
-    ("rhythm and blues", "Blues"),
-    ("jump blues", "Blues"),
-    ("soul blues", "Blues"),
+    # Hip Hop
+    "hip hop": "hip hop", "rap": "hip hop", "trap": "hip hop",
+    "conscious hip hop": "hip hop", "east coast hip hop": "hip hop",
+    "west coast hip hop": "hip hop", "southern hip hop": "hip hop",
+    "gangsta rap": "hip hop", "alternative hip hop": "hip hop",
+    "underground hip hop": "hip hop", "boom bap": "hip hop",
+    "cloud rap": "hip hop", "mumble rap": "hip hop", "drill": "hip hop",
+    "g-funk": "hip hop", "crunk": "hip hop", "hyphy": "hip hop",
+    "lo-fi hip hop": "hip hop", "jazz rap": "hip hop",
 
-    # ── Neo Soul (before R&B / Soul) ───────────────────────────────────────
-    ("neo soul", "Neo Soul"),
-    ("neo-soul", "Neo Soul"),
+    # Electronic
+    "electronic": "electronic", "electronica": "electronic",
+    "ambient": "electronic", "idm": "electronic", "glitch": "electronic",
+    "downtempo": "electronic", "chillwave": "electronic", "vaporwave": "electronic",
+    "synthwave": "electronic", "retrowave": "electronic", "darkwave": "electronic",
+    "industrial": "electronic", "ebm": "electronic", "noise": "electronic",
+    "experimental electronic": "electronic", "trip hop": "electronic",
+    "lo-fi": "electronic", "future bass": "electronic", "bass music": "electronic",
 
-    # ── Funk (before R&B / Soul) ───────────────────────────────────────────
-    ("funk", "Funk"),
-    ("p-funk", "Funk"),
-    ("g-funk", "Funk"),
-    ("funk rock", "Funk"),
-    ("funk metal", "Funk"),
-    ("deep funk", "Funk"),
-    ("go-go", "Funk"),
-    ("electro funk", "Funk"),
+    # Dance / EDM
+    "house": "dance", "deep house": "dance", "tech house": "dance",
+    "progressive house": "dance", "electro house": "dance", "future house": "dance",
+    "tropical house": "dance", "afro house": "dance",
+    "techno": "dance", "detroit techno": "dance", "minimal techno": "dance",
+    "acid techno": "dance", "industrial techno": "dance",
+    "trance": "dance", "progressive trance": "dance", "psytrance": "dance",
+    "drum and bass": "dance", "jungle": "dance", "breakbeat": "dance",
+    "dubstep": "dance", "brostep": "dance", "garage": "dance",
+    "uk garage": "dance", "2-step": "dance", "edm": "dance",
+    "club": "dance", "dance": "dance", "disco": "dance", "nu-disco": "dance",
+    "electro": "dance", "big room": "dance", "hardstyle": "dance",
 
-    # ── R&B / Soul ─────────────────────────────────────────────────────────
-    ("r&b", "R&B / Soul"),
-    ("rnb", "R&B / Soul"),
-    ("soul", "R&B / Soul"),
-    ("contemporary r&b", "R&B / Soul"),
-    ("quiet storm", "R&B / Soul"),
-    ("new jack swing", "R&B / Soul"),
-    ("motown", "R&B / Soul"),
-    ("northern soul", "R&B / Soul"),
-    ("gospel", "R&B / Soul"),
-    ("doo-wop", "R&B / Soul"),
-    ("soul music", "R&B / Soul"),
+    # Jazz
+    "jazz": "jazz", "bebop": "jazz", "cool jazz": "jazz",
+    "hard bop": "jazz", "free jazz": "jazz", "jazz fusion": "jazz",
+    "smooth jazz": "jazz", "acid jazz": "jazz", "nu jazz": "jazz",
+    "swing": "jazz", "big band": "jazz", "dixieland": "jazz",
+    "modal jazz": "jazz", "post-bop": "jazz", "soul jazz": "jazz",
+    "latin jazz": "jazz", "bossa nova": "jazz", "samba": "jazz",
 
-    # ── Classic Rock (before Rock) ─────────────────────────────────────────
-    ("classic rock", "Classic Rock"),
-    ("album rock", "Classic Rock"),
-    ("arena rock", "Classic Rock"),
-    ("heartland rock", "Classic Rock"),
-    ("mellow gold", "Classic Rock"),
-    ("soft rock", "Classic Rock"),
-    ("glam rock", "Classic Rock"),
-    ("70s rock", "Classic Rock"),
-    ("70s", "Classic Rock"),
-    ("1970s", "Classic Rock"),
-    ("rock de los 70", "Classic Rock"),
-    ("early rock and roll", "Classic Rock"),
-    ("rockabilly", "Classic Rock"),
+    # R&B / Soul
+    "r&b": "r&b", "rnb": "r&b", "soul": "r&b", "neo soul": "r&b",
+    "contemporary r&b": "r&b", "quiet storm": "r&b", "new jack swing": "r&b",
+    "motown": "r&b", "northern soul": "r&b", "funk": "r&b",
+    "gospel": "r&b", "blues": "r&b", "rhythm and blues": "r&b",
+    "electric blues": "r&b", "chicago blues": "r&b", "delta blues": "r&b",
 
-    # ── Americana (before Folk and Country) ────────────────────────────────
-    ("americana", "Americana"),
-    ("roots rock", "Americana"),
-    ("alt-country", "Americana"),
-    ("alternative country", "Americana"),
-    ("outlaw country", "Americana"),
-    ("red dirt", "Americana"),
-    ("texas country", "Americana"),
-    ("southern rock", "Americana"),
-    ("swamp rock", "Americana"),
-    ("neofolk", "Americana"),
+    # Metal
+    "metal": "metal", "heavy metal": "metal", "thrash metal": "metal",
+    "death metal": "metal", "black metal": "metal", "doom metal": "metal",
+    "power metal": "metal", "progressive metal": "metal", "nu-metal": "metal",
+    "metalcore": "metal", "deathcore": "metal", "symphonic metal": "metal",
+    "folk metal": "metal", "viking metal": "metal", "sludge metal": "metal",
+    "stoner metal": "metal", "post-metal": "metal", "djent": "metal",
+    "speed metal": "metal", "glam metal": "metal",
 
-    # ── Country (before Folk) ──────────────────────────────────────────────
-    ("country", "Country"),
-    ("country pop", "Country"),
-    ("country rock", "Country"),
-    ("bluegrass", "Country"),
-    ("honky tonk", "Country"),
-    ("nashville sound", "Country"),
-    ("bro-country", "Country"),
-    ("new country", "Country"),
-    ("progressive country", "Country"),
+    # Folk / Acoustic
+    "folk": "folk", "indie folk": "folk", "folk rock": "folk",
+    "americana": "folk", "singer-songwriter": "folk", "acoustic": "folk",
+    "bluegrass": "folk", "country": "folk", "outlaw country": "folk",
+    "alt-country": "folk", "country pop": "folk", "country rock": "folk",
+    "celtic": "folk", "world": "folk", "neofolk": "folk",
 
-    # ── Acoustic (before Folk) ─────────────────────────────────────────────
-    ("singer-songwriter", "Acoustic"),
-    ("acoustic", "Acoustic"),
-    ("folk pop", "Acoustic"),
-    ("chamber folk", "Acoustic"),
-    ("indie folk", "Acoustic"),  # also Folk but Acoustic wins
-    ("anti-folk", "Acoustic"),
-    ("lo-fi folk", "Acoustic"),
+    # Classical
+    "classical": "classical", "orchestral": "classical", "chamber music": "classical",
+    "opera": "classical", "baroque": "classical", "romantic": "classical",
+    "contemporary classical": "classical", "neoclassical": "classical",
+    "minimalism": "classical", "modern classical": "classical",
+    "soundtrack": "classical", "film score": "classical",
 
-    # ── Folk ───────────────────────────────────────────────────────────────
-    ("folk", "Folk"),
-    ("folk rock", "Folk"),
-    ("traditional folk", "Folk"),
-    ("british folk", "Folk"),
-    ("celtic", "Folk"),
-    ("irish folk", "Folk"),
-    ("appalachian", "Folk"),
-    ("old time", "Folk"),
-    ("new weird america", "Folk"),
+    # Reggae
+    "reggae": "reggae", "dancehall": "reggae", "ska": "reggae",
+    "dub": "reggae", "roots reggae": "reggae", "rocksteady": "reggae",
 
-    # ── Rock ───────────────────────────────────────────────────────────────
-    ("rock", "Rock"),
-    ("indie rock", "Rock"),
-    ("alternative rock", "Rock"),
-    ("post-rock", "Rock"),
-    ("hard rock", "Rock"),
-    ("progressive rock", "Rock"),
-    ("psychedelic rock", "Rock"),
-    ("garage rock", "Rock"),
-    ("art rock", "Rock"),
-    ("punk rock", "Rock"),
-    ("punk", "Rock"),
-    ("math rock", "Rock"),
-    ("noise rock", "Rock"),
-    ("surf rock", "Rock"),
-    ("britpop", "Rock"),
-    ("grunge", "Rock"),
-    ("shoegaze", "Rock"),
-    ("post-grunge", "Rock"),
-    ("emo", "Rock"),
-    ("screamo", "Rock"),
-    ("new wave", "Rock"),
-    ("post-punk", "Rock"),
-    ("gothic rock", "Rock"),
-    ("industrial rock", "Rock"),
-    ("power pop", "Rock"),
-    ("jangle pop", "Rock"),
-    ("college rock", "Rock"),
-    ("lo-fi rock", "Rock"),
-    ("indie", "Rock"),
-    ("alternative", "Rock"),
-    ("dream pop", "Rock"),
-    ("noise pop", "Rock"),
-    ("space rock", "Rock"),
-    ("krautrock", "Rock"),
-    ("psychedelic", "Rock"),
-    ("stoner rock", "Rock"),
-    ("heavy psych", "Rock"),
-    ("freakbeat", "Rock"),
-    ("jam band", "Rock"),
-    ("post-hardcore", "Rock"),
-
-    # ── Hip Hop ────────────────────────────────────────────────────────────
-    ("hip hop", "Hip Hop"),
-    ("hip-hop", "Hip Hop"),
-    ("hiphop", "Hip Hop"),
-    ("rap", "Hip Hop"),
-    ("trap", "Hip Hop"),
-    ("conscious hip hop", "Hip Hop"),
-    ("east coast hip hop", "Hip Hop"),
-    ("west coast hip hop", "Hip Hop"),
-    ("southern hip hop", "Hip Hop"),
-    ("gangsta rap", "Hip Hop"),
-    ("alternative hip hop", "Hip Hop"),
-    ("underground hip hop", "Hip Hop"),
-    ("boom bap", "Hip Hop"),
-    ("cloud rap", "Hip Hop"),
-    ("mumble rap", "Hip Hop"),
-    ("drill", "Hip Hop"),
-    ("crunk", "Hip Hop"),
-    ("hyphy", "Hip Hop"),
-    ("lo-fi hip hop", "Hip Hop"),
-    ("jazz rap", "Hip Hop"),
-    ("dirty south", "Hip Hop"),
-    ("southern rap", "Hip Hop"),
-    ("chopped and screwed", "Hip Hop"),
-    ("phonk", "Hip Hop"),
-
-    # ── Metal ──────────────────────────────────────────────────────────────
-    ("metal", "Metal"),
-    ("heavy metal", "Metal"),
-    ("thrash metal", "Metal"),
-    ("death metal", "Metal"),
-    ("black metal", "Metal"),
-    ("doom metal", "Metal"),
-    ("power metal", "Metal"),
-    ("progressive metal", "Metal"),
-    ("nu-metal", "Metal"),
-    ("metalcore", "Metal"),
-    ("deathcore", "Metal"),
-    ("symphonic metal", "Metal"),
-    ("folk metal", "Metal"),
-    ("viking metal", "Metal"),
-    ("sludge metal", "Metal"),
-    ("stoner metal", "Metal"),
-    ("post-metal", "Metal"),
-    ("djent", "Metal"),
-    ("speed metal", "Metal"),
-    ("glam metal", "Metal"),
-    ("grindcore", "Metal"),
-    ("industrial metal", "Metal"),
-    ("gothic metal", "Metal"),
-
-    # ── Jazz ───────────────────────────────────────────────────────────────
-    ("jazz", "Jazz"),
-    ("bebop", "Jazz"),
-    ("cool jazz", "Jazz"),
-    ("hard bop", "Jazz"),
-    ("free jazz", "Jazz"),
-    ("jazz fusion", "Jazz"),
-    ("smooth jazz", "Jazz"),
-    ("acid jazz", "Jazz"),
-    ("nu jazz", "Jazz"),
-    ("swing", "Jazz"),
-    ("big band", "Jazz"),
-    ("dixieland", "Jazz"),
-    ("modal jazz", "Jazz"),
-    ("post-bop", "Jazz"),
-    ("soul jazz", "Jazz"),
-    ("latin jazz", "Jazz"),
-    ("bossa nova", "Jazz"),
-    ("samba", "Jazz"),
-    ("fusion", "Jazz"),
-
-    # ── Electronic ─────────────────────────────────────────────────────────
-    ("electronic", "Electronic"),
-    ("electronica", "Electronic"),
-    ("ambient", "Electronic"),
-    ("idm", "Electronic"),
-    ("glitch", "Electronic"),
-    ("downtempo", "Electronic"),
-    ("chillwave", "Electronic"),
-    ("vaporwave", "Electronic"),
-    ("synthwave", "Electronic"),
-    ("retrowave", "Electronic"),
-    ("darkwave", "Electronic"),
-    ("industrial", "Electronic"),
-    ("ebm", "Electronic"),
-    ("experimental electronic", "Electronic"),
-    ("trip hop", "Electronic"),
-    ("lo-fi", "Electronic"),
-    ("future bass", "Electronic"),
-    ("bass music", "Electronic"),
-    ("noise", "Electronic"),
-    ("drone", "Electronic"),
-    ("musique concrete", "Electronic"),
-    ("chillout", "Electronic"),
-    ("lounge", "Electronic"),
-    ("new age", "Electronic"),
-
-    # ── Pop ────────────────────────────────────────────────────────────────
-    ("pop", "Pop"),
-    ("indie pop", "Pop"),
-    ("synth-pop", "Pop"),
-    ("electropop", "Pop"),
-    ("art pop", "Pop"),
-    ("baroque pop", "Pop"),
-    ("chamber pop", "Pop"),
-    ("bubblegum pop", "Pop"),
-    ("teen pop", "Pop"),
-    ("dance-pop", "Pop"),
-    ("k-pop", "Pop"),
-    ("j-pop", "Pop"),
-    ("c-pop", "Pop"),
-    ("hyperpop", "Pop"),
-    ("sophisti-pop", "Pop"),
-    ("adult contemporary", "Pop"),
-    ("easy listening", "Pop"),
-
-    # ── Reggae ─────────────────────────────────────────────────────────────
-    ("reggae", "Reggae"),
-    ("dancehall", "Reggae"),
-    ("ska", "Reggae"),
-    ("dub", "Reggae"),
-    ("roots reggae", "Reggae"),
-    ("rocksteady", "Reggae"),
-    ("lovers rock", "Reggae"),
-    ("acoustic reggae", "Reggae"),
-    ("reggae fusion", "Reggae"),
-
-    # ── Dance ──────────────────────────────────────────────────────────────
-    ("dance", "Dance"),
-    ("house", "Dance"),
-    ("deep house", "Dance"),
-    ("tech house", "Dance"),
-    ("progressive house", "Dance"),
-    ("electro house", "Dance"),
-    ("future house", "Dance"),
-    ("tropical house", "Dance"),
-    ("afro house", "Dance"),
-    ("techno", "Dance"),
-    ("detroit techno", "Dance"),
-    ("minimal techno", "Dance"),
-    ("acid techno", "Dance"),
-    ("industrial techno", "Dance"),
-    ("trance", "Dance"),
-    ("progressive trance", "Dance"),
-    ("psytrance", "Dance"),
-    ("drum and bass", "Dance"),
-    ("jungle", "Dance"),
-    ("breakbeat", "Dance"),
-    ("dubstep", "Dance"),
-    ("brostep", "Dance"),
-    ("uk garage", "Dance"),
-    ("2-step", "Dance"),
-    ("edm", "Dance"),
-    ("club", "Dance"),
-    ("disco", "Dance"),
-    ("nu-disco", "Dance"),
-    ("electro", "Dance"),
-    ("big room", "Dance"),
-    ("hardstyle", "Dance"),
-    ("footwork", "Dance"),
-    ("jersey club", "Dance"),
-    ("afrobeats", "Dance"),
-
-    # ── Experimental ───────────────────────────────────────────────────────
-    ("experimental", "Experimental"),
-    ("avant-garde", "Experimental"),
-    ("avantgarde", "Experimental"),
-    ("free improvisation", "Experimental"),
-    ("noise music", "Experimental"),
-    ("sound art", "Experimental"),
-    ("spoken word", "Experimental"),
-    ("art music", "Experimental"),
-    ("post-minimalism", "Experimental"),
-    ("microtonality", "Experimental"),
-    ("harsh noise", "Experimental"),
-    ("lowercase", "Experimental"),
-    ("spectralism", "Experimental"),
-
-    # ── Latin ──────────────────────────────────────────────────────────────
-    ("latin", "Latin"),
-    ("salsa", "Latin"),
-    ("merengue", "Latin"),
-    ("cumbia", "Latin"),
-    ("bachata", "Latin"),
-    ("reggaeton", "Latin"),
-    ("latin pop", "Latin"),
-    ("latin rock", "Latin"),
-    ("flamenco", "Latin"),
-    ("bossa nova", "Latin"),  # also Jazz — Latin listed here as secondary
-    ("mpb", "Latin"),
-    ("tropicalia", "Latin"),
-    ("axe", "Latin"),
-    ("forro", "Latin"),
-    ("tango", "Latin"),
-    ("mariachi", "Latin"),
-    ("norteño", "Latin"),
-    ("corrido", "Latin"),
-    ("banda", "Latin"),
-
-    # ── Classical ──────────────────────────────────────────────────────────
-    ("classical", "Classical"),
-    ("orchestral", "Classical"),
-    ("chamber music", "Classical"),
-    ("opera", "Classical"),
-    ("baroque", "Classical"),
-    ("romantic", "Classical"),
-    ("contemporary classical", "Classical"),
-    ("neoclassical", "Classical"),
-    ("minimalism", "Classical"),
-    ("modern classical", "Classical"),
-    ("soundtrack", "Classical"),
-    ("film score", "Classical"),
-    ("choral", "Classical"),
-    ("sacred music", "Classical"),
-    ("liturgical", "Classical"),
-    ("early music", "Classical"),
-
-    # ── World ──────────────────────────────────────────────────────────────
-    ("world", "World"),
-    ("afrobeat", "World"),
-    ("afropop", "World"),
-    ("highlife", "World"),
-    ("juju", "World"),
-    ("mbalax", "World"),
-    ("soukous", "World"),
-    ("afro", "World"),
-    ("indian", "World"),
-    ("bollywood", "World"),
-    ("bhangra", "World"),
-    ("qawwali", "World"),
-    ("arabic", "World"),
-    ("middle eastern", "World"),
-    ("turkish", "World"),
-    ("persian", "World"),
-    ("global", "World"),
-    ("international", "World"),
-    ("central asian throat singing", "World"),
-    ("throat singing", "World"),
-    ("global bass", "World"),
-    ("balkan", "World"),
-    ("klezmer", "World"),
-    ("polka", "World"),
-]
-
-# Build a fast lookup dict from the ordered list.
-# Earlier entries win for any given key (more specific buckets listed first above).
-GENRE_BUCKET_LOOKUP = {}
-for _micro, _bucket in GENRE_BUCKET_MAP:
-    if _micro not in GENRE_BUCKET_LOOKUP:
-        GENRE_BUCKET_LOOKUP[_micro] = _bucket
-
-# Canonical bucket labels — used for display ordering in the app.
-CANONICAL_BUCKETS = [
-    "Rock", "Classic Rock", "Blues", "Acoustic Blues", "Folk", "Country", "Americana",
-    "Acoustic", "Hip Hop", "Metal", "Jazz", "R&B / Soul", "Neo Soul",
-    "Funk", "Electronic", "Pop", "Reggae", "Dance", "Experimental",
-    "Latin", "Classical", "World",
-]
+    # Latin
+    "latin": "latin", "salsa": "latin", "merengue": "latin",
+    "cumbia": "latin", "bachata": "latin", "reggaeton": "latin",
+    "latin pop": "latin", "latin rock": "latin", "flamenco": "latin",
+}
 
 
 # Tags that are not real genres and should be filtered out
 NOISE_TAGS = {
-    # Years and decades (60s and earlier, 80s onward still noise)
-    "50s", "60s", "80s", "90s", "00s", "10s", "20s",
-    "1950s", "1960s", "1980s", "1990s", "2000s", "2010s", "2020s",
+    # Years and decades
+    "50s", "60s", "70s", "80s", "90s", "00s", "10s", "20s",
+    "1950s", "1960s", "1970s", "1980s", "1990s", "2000s", "2010s", "2020s",
     # Nationalities / regions
     "american", "british", "english", "irish", "scottish", "welsh",
     "australian", "canadian", "swedish", "norwegian", "danish", "finnish",
@@ -916,7 +552,49 @@ NOISE_TAGS = {
     "1990", "1991", "1992", "1993", "1994", "1995", "1996", "1997", "1998", "1999",
 }
 
-
+# Additional genre keyword mappings to catch what was falling through
+EXTRA_GENRE_MAP = {
+    # Rock variants
+    "indie": "rock", "psychedelic": "rock", "jam band": "rock",
+    "jam": "rock", "stoner": "rock", "prog": "rock", "brit": "rock",
+    "garage": "rock", "post rock": "rock", "math": "rock",
+    "heavy psych": "rock", "post-hardcore": "rock", "freakbeat": "rock",
+    "indie groove": "rock", "hard rock": "rock", "power pop": "rock",
+    # Electronic variants
+    "chillout": "electronic", "chill": "electronic", "lounge": "electronic",
+    "future": "electronic", "bass": "electronic", "edm": "dance",
+    # Hip hop variants
+    "hip-hop": "hip hop", "hiphop": "hip hop", "rap": "hip hop",
+    "dirty south": "hip hop", "southern rap": "hip hop",
+    # R&B variants
+    "contemporary randb": "r&b / soul", "rnb": "r&b / soul",
+    "rhythm and blues": "r&b / soul", "soul music": "r&b / soul",
+    # World
+    "central asian throat singing": "world", "throat singing": "world",
+    "afrobeat": "world", "afropop": "world", "afro": "world",
+    "celtic": "world", "indian": "world", "arabic": "world",
+    "global": "world", "international": "world", "aussie": "world",
+    # Jazz variants
+    "fusion": "jazz", "latin jazz": "jazz", "smooth": "jazz",
+    "hard bop": "jazz", "bebop": "jazz", "cool jazz": "jazz",
+    # Folk variants
+    "roots": "folk / country", "appalachian": "folk / country",
+    "old time": "folk / country", "traditional": "folk / country",
+    # Classical variants
+    "orchestral": "classical", "symphonic": "classical", "chamber": "classical",
+    "contemporary classical": "classical", "modern classical": "classical",
+    "minimalist": "classical", "score": "classical", "cinematic": "classical",
+    # Blues variants
+    "delta": "blues", "piedmont": "blues", "country blues": "blues",
+    "swamp": "blues", "boogie": "blues",
+    # Metal variants
+    "sludge": "metal", "stoner rock": "metal", "djent": "metal",
+    "deathcore": "metal", "grindcore": "metal",
+    # Reggae variants
+    "roots reggae": "reggae", "lovers rock": "reggae",
+    # Latin variants
+    "bossa": "jazz", "mpb": "latin", "tropicalia": "latin",
+}
 
 
 def clean_genres(genres_str):
@@ -976,10 +654,11 @@ def consolidate_genres(genres_str):
 
     for g in original:
         # Check GENRE_PARENT_MAP first
-        parent = GENRE_BUCKET_LOOKUP.get(g.lower())
-    if not parent:
-        parent = EXTRA_GENRE_MAP.get(g.lower())
-    if parent and parent.lower() not in seen:
+        parent = GENRE_PARENT_MAP.get(g.lower())
+        # Fall back to EXTRA_GENRE_MAP
+        if not parent:
+            parent = EXTRA_GENRE_MAP.get(g.lower())
+        if parent and parent.lower() not in seen:
             seen.add(parent.lower())
             parents_to_add.append(parent)
 
@@ -1439,6 +1118,7 @@ def build_artists_dataframe(artist_items, artist_details_map):
             {
                 "artist_id": artist_id,
                 "artist_name": details.get("name", ""),
+                "artist_type": details.get("type", ""),
                 "artist_uri": details.get("uri", ""),
                 "artist_url": spotify_url,
                 "artist_image_url": image_url,
@@ -1942,10 +1622,10 @@ def rebuild_browse_tabs(sh, config, tracks_raw_df, albums_raw_df, artists_raw_df
 
     # Ensure artist_url exists on tracks/albums by joining from artists_raw
     if not artists_raw_df.empty:
-        art_subset = artists_raw_df[["artist_id", "artist_url", "final_genres"]].copy()
+        art_subset = artists_raw_df[["artist_id", "artist_url", "artist_type", "final_genres"]].copy()
         art_subset = art_subset.rename(columns={"final_genres": "artist_final_genres"})
     else:
-        art_subset = pd.DataFrame(columns=["artist_id", "artist_url", "artist_final_genres"])
+        art_subset = pd.DataFrame(columns=["artist_id", "artist_url", "artist_type", "artist_final_genres"])
 
     # Browse_Tracks
     if not tracks_raw_df.empty:
@@ -2156,7 +1836,6 @@ def rebuild_browse_tabs(sh, config, tracks_raw_df, albums_raw_df, artists_raw_df
                         most_recent_album_date_by_name[aname] = date
 
         bga_rows = []
-        canonical_set = set(CANONICAL_BUCKETS)
         for _, r in artists_raw_df.iterrows():
             genres = (r.get("final_genres") or "").split(",")
             artist_id = r.get("artist_id", "")
@@ -2167,16 +1846,15 @@ def rebuild_browse_tabs(sh, config, tracks_raw_df, albums_raw_df, artists_raw_df
                 or most_recent_album_date_by_name.get(artist_name)
                 or r.get("first_seen_ts", "")
             )
-            seen_buckets = set()
             for g in genres:
                 g = g.strip()
-                if not g or g not in canonical_set or g in seen_buckets:
+                if not g:
                     continue
-                seen_buckets.add(g)
                 bga_rows.append(
                     {
                         "genre": g,
                         "artist_name": artist_name,
+                        "artist_type": r.get("artist_type", ""),
                         "artist_url": r.get("artist_url"),
                         "artist_image_url": r.get("artist_image_url", ""),
                         "followers": r.get("followers"),
@@ -2190,7 +1868,7 @@ def rebuild_browse_tabs(sh, config, tracks_raw_df, albums_raw_df, artists_raw_df
                 lambda r: f'=HYPERLINK("{r.get("artist_url","")}","{r.get("artist_name","")}")' if r.get("artist_url") else r.get("artist_name", ""),
                 axis=1,
             )
-            bga = bga[["genre", "artist_link", "artist_name", "artist_image_url", "artist_url", "followers", "popularity", "added_date"]]
+            bga = bga[["genre", "artist_link", "artist_name", "artist_type", "artist_image_url", "artist_url", "followers", "popularity", "added_date"]]
             bga = bga.sort_values(["genre", "artist_name"])
     else:
         bga = pd.DataFrame()
@@ -2200,19 +1878,17 @@ def rebuild_browse_tabs(sh, config, tracks_raw_df, albums_raw_df, artists_raw_df
     # By_Genre_Albums
     if not albums_raw_df.empty:
         bgal_rows = []
-        canonical_set = set(CANONICAL_BUCKETS)
         for _, r in albums_raw_df.iterrows():
             genres = (r.get("final_genres") or "").split(",")
-            seen_buckets = set()
             for g in genres:
                 g = g.strip()
-                if not g or g not in canonical_set or g in seen_buckets:
+                if not g:
                     continue
-                seen_buckets.add(g)
                 bgal_rows.append(
                     {
                         "genre": g,
                         "primary_artist_name": r.get("primary_artist_name"),
+                        "primary_artist_id": r.get("primary_artist_id"),
                         "album_name": r.get("album_name"),
                         "album_url": r.get("album_url"),
                         "album_image_url": r.get("album_image_url", ""),
@@ -2224,6 +1900,18 @@ def rebuild_browse_tabs(sh, config, tracks_raw_df, albums_raw_df, artists_raw_df
                 )
         bgal = pd.DataFrame(bgal_rows)
         if not bgal.empty:
+            # Join artist_type from art_subset
+            if not art_subset.empty and "artist_type" in art_subset.columns:
+                bgal = bgal.merge(
+                    art_subset[["artist_id", "artist_type"]],
+                    how="left",
+                    left_on="primary_artist_id",
+                    right_on="artist_id",
+                )
+                if "artist_id" in bgal.columns:
+                    bgal = bgal.drop(columns=["artist_id"])
+            else:
+                bgal["artist_type"] = ""
             bgal["album_link"] = bgal.apply(
                 lambda r: f'=HYPERLINK("{r.get("album_url","")}","{r.get("album_name","")}")' if r.get("album_url") else r.get("album_name", ""),
                 axis=1,
@@ -2232,7 +1920,7 @@ def rebuild_browse_tabs(sh, config, tracks_raw_df, albums_raw_df, artists_raw_df
                 lambda r: f'=HYPERLINK("{r.get("artist_url","")}","{r.get("primary_artist_name","")}")' if r.get("artist_url") else r.get("primary_artist_name", ""),
                 axis=1,
             )
-            bgal = bgal[["genre", "artist_link", "album_link", "primary_artist_name", "album_name", "album_image_url", "album_url", "artist_url", "release_date", "total_tracks", "added_date"]]
+            bgal = bgal[["genre", "artist_link", "album_link", "primary_artist_name", "artist_type", "album_name", "album_image_url", "album_url", "artist_url", "release_date", "total_tracks", "added_date"]]
             bgal = bgal.sort_values(["genre", "primary_artist_name", "album_name"])
     else:
         bgal = pd.DataFrame()
@@ -2482,72 +2170,17 @@ def main():
             album_artist_ids
         )
 
-    # ── Merge in album-only artists (saved albums but not followed) ──────────
-    # Build a map of artist_id -> best album image and most recent added_at
-    followed_ids = set(new_artists_df["artist_id"].tolist()) if not new_artists_df.empty else set()
-    album_only_map = {}
-    for item in saved_albums:
-        added_at = item.get("added_at", "")
-        album = item.get("album") or {}
-        images = album.get("images", []) or []
-        image_url = images[0].get("url", "") if images else ""
-        for a in album.get("artists", []):
-            aid = a.get("id")
-            aname = a.get("name", "")
-            if not aid or aid in followed_ids:
-                continue
-            # Skip "Various Artists"
-            if aname.lower() == "various artists":
-                continue
-            if aid not in album_only_map:
-                album_only_map[aid] = {
-                    "artist_id": aid,
-                    "artist_name": aname,
-                    "artist_uri": f"spotify:artist:{aid}",
-                    "artist_url": f"https://open.spotify.com/artist/{aid}",
-                    "artist_image_url": image_url,
-                    "followers": None,
-                    "popularity": None,
-                    "spotify_genres": "",
-                    "web_genres": "",
-                    "final_genres": "",
-                    "genre_source": "",
-                    "genre_confidence": 0.0,
-                    "genre_notes": "",
-                    "followed_flag": False,
-                    "appears_in_liked_tracks_flag": aid in track_artist_ids,
-                    "appears_in_saved_albums_flag": True,
-                    "active_status": True,
-                    "first_seen_ts": datetime.now(timezone.utc).isoformat(),
-                    "last_seen_ts": datetime.now(timezone.utc).isoformat(),
-                    "missing_run_count": 0,
-                }
-            else:
-                # Keep most recent album image (best proxy for artist image)
-                if added_at > album_only_map[aid].get("last_seen_ts", ""):
-                    if image_url:
-                        album_only_map[aid]["artist_image_url"] = image_url
-
-    if album_only_map:
-        album_only_df = pd.DataFrame(list(album_only_map.values()))
-        log(f"Adding {len(album_only_df)} album-only artists (saved albums but not followed).")
-        new_artists_df = pd.concat([new_artists_df, album_only_df], ignore_index=True)
-        new_artists_df = new_artists_df.drop_duplicates(subset=["artist_id"])
-
     new_albums_df = build_albums_dataframe(saved_albums)
     new_tracks_df = build_tracks_dataframe(saved_tracks, artist_details_map)
 
     # Add artist_url to tracks & albums via artist_details_map
-    # Fall back to constructing URL from artist ID if not in map
     if not new_tracks_df.empty:
         new_tracks_df["artist_url"] = new_tracks_df["primary_artist_id"].map(
             lambda aid: safe_get(artist_details_map.get(aid, {}), "external_urls", "spotify", default="")
-                        or (f"https://open.spotify.com/artist/{aid}" if aid else "")
         )
     if not new_albums_df.empty:
         new_albums_df["artist_url"] = new_albums_df["primary_artist_id"].map(
             lambda aid: safe_get(artist_details_map.get(aid, {}), "external_urls", "spotify", default="")
-                        or (f"https://open.spotify.com/artist/{aid}" if aid else "")
         )
 
     # Genre enrichment on artists
